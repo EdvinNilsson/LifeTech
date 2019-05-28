@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28917.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RaspberryPi", "LifeTech\RaspberryPi.csproj", "{3C02127D-D49C-4335-B3CE-46A7D3E88D71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MainServer", "MainServer\MainServer.csproj", "{79F42A96-7AA0-4640-BDE4-DA366AE3253A}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "SQLDatabase", "SQLDatabase\SQLDatabase.sqlproj", "{B81F4546-F67C-44AE-9CFC-78CC1472492F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Arduino", "Arduino", "{05831578-8F98-4E46-9FBB-2DB16408794B}"
+	ProjectSection(SolutionItems) = preProject
+		Program.ino = Program.ino
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3C02127D-D49C-4335-B3CE-46A7D3E88D71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C02127D-D49C-4335-B3CE-46A7D3E88D71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C02127D-D49C-4335-B3CE-46A7D3E88D71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C02127D-D49C-4335-B3CE-46A7D3E88D71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79F42A96-7AA0-4640-BDE4-DA366AE3253A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79F42A96-7AA0-4640-BDE4-DA366AE3253A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79F42A96-7AA0-4640-BDE4-DA366AE3253A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79F42A96-7AA0-4640-BDE4-DA366AE3253A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B81F4546-F67C-44AE-9CFC-78CC1472492F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B81F4546-F67C-44AE-9CFC-78CC1472492F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B81F4546-F67C-44AE-9CFC-78CC1472492F}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{B81F4546-F67C-44AE-9CFC-78CC1472492F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B81F4546-F67C-44AE-9CFC-78CC1472492F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B81F4546-F67C-44AE-9CFC-78CC1472492F}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CF3BFE7A-45EB-4A99-B1DE-C4249D6005E2}
+	EndGlobalSection
+EndGlobal
