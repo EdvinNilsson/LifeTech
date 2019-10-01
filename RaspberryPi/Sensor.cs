@@ -1,83 +1,41 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 using System.Device.I2c;
 
 namespace RaspberryPi
 {
     class Sensor
     {
-        public Sensor(SensorHub sensorHub, byte sensorIndex)
+        public Sensor(int deviceAddress)
         {
-            SensorHub = sensorHub;
-            SensorIndex = sensorIndex;
-        }
-
-        public bool Online { get; protected set; }
-
-        public byte SensorIndex { get; set; }
-
-        public SensorHub SensorHub { get; }
-
-        private ushort _sendFrequency;
-        /// <summary>
-        /// Automatic updates per minute.
-        /// </summary>
-        public ushort SendFrequency
-        {
-            get => _sendFrequency;
-            set
+            try
             {
-                _sendFrequency = value;
-                WriteSendFrequency();
+                Device = I2cDevice.Create(new I2cConnectionSettings(1, deviceAddress));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Enhetsfel: {e.Message}");
+                Online = false;
             }
         }
 
-        public event Action? OnDataUpdate;
+        public bool Online { get; private set; }
 
-        public Action RequestSensorData()
+        public I2cDevice? Device { get; }
+
+        public void UpdateValues()
         {
-            throw new NotImplementedException();
-            return OnDataUpdate;
+            try
+            {
+                InternalUpdateValues();
+                Online = true;
+            }
+            catch (Exception e)
+            {
+                Online = false;
+                Console.WriteLine($"Sensoravläsningsfel: {e.Message}\n{e.StackTrace}");
+            }
         }
 
-        public virtual void OnReceiveSensorData(byte[] bytes)
-        {
-            OnDataUpdate?.Invoke();
-        }
-
-        private void WriteSendFrequency()
-        {
-            byte[] bytes = BitConverter.GetBytes(SendFrequency);
-            SensorHub.WriteData(SensorIndex, bytes);
-        }
+        protected virtual void InternalUpdateValues() { }
     }
-
-    class FlowSensor : Sensor
-    {
-        public FlowSensorData? LatestSensorData { get; private set; }
-
-        public FlowSensor(SensorHub sensorHub, byte sensorIndex) : base(sensorHub, sensorIndex)
-        {
-        }
-
-        public override void OnReceiveSensorData(byte[] bytes)
-        {
-            LatestSensorData = Deserialize(bytes);
-            base.OnReceiveSensorData(bytes);
-        }
-
-        private FlowSensorData Deserialize(byte[] sensorData)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    class FlowSensorData : SensorData
-    {
-        public float FlowRate;
-    }
-
-    class SensorData { }
 }
