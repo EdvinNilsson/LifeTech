@@ -30,7 +30,16 @@ namespace RaspberryPi
             bytes.CopyTo(payload, 1);
 
             if (Device is { } device)
-                device.Write(payload);
+            {
+                try
+                {
+                    device.Write(payload);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
             else
                 Console.WriteLine("Finns ingen enhet att skicka data till via i2c.");
 
