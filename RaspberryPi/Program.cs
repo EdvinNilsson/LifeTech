@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Device.I2c;
+using System.Diagnostics;
+using System.Threading;
 
 namespace RaspberryPi
 {
