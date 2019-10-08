@@ -21,7 +21,7 @@ namespace RaspberryPi
             }
             */
 
-            var flowSensor = new FlowSensor(0x4D);
+            var flowSensor = new FlowSensor();
             flowSensor.UpdateValues();
             if (flowSensor.Online)
                 Console.WriteLine(flowSensor.FlowRate);
