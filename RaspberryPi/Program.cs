@@ -26,6 +26,8 @@ namespace RaspberryPi
             if (flowSensor.Online)
                 Console.WriteLine(flowSensor.FlowRate);
 
+            SocketClient.RunClient();
+
             Console.Read();
         }
     }

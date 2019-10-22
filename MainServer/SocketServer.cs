@@ -8,7 +8,7 @@ namespace MainServer {
     class SocketServer {
 
         public static void RunServer() {
-            IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+            IPHostEntry ipHost = Dns.GetHostEntry("127.0.0.1");
             IPAddress ipAddr = ipHost.AddressList[0];
             IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
 
@@ -25,15 +25,14 @@ namespace MainServer {
 
                     Socket clientSocket = listener.Accept();
 
-                    byte[] bytes = new Byte[1024];
+                    byte[] bytes = new byte[1024];
                     string data = null;
 
                     while (true) {
 
                         int numByte = clientSocket.Receive(bytes);
 
-                        data += Encoding.ASCII.GetString(bytes,
-                                                   0, numByte);
+                        data += Encoding.ASCII.GetString(bytes, 0, numByte);
 
                         if (data.IndexOf("<EOF>") > -1)
                             break;
