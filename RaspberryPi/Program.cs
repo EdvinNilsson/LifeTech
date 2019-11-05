@@ -20,6 +20,8 @@ namespace RaspberryPi
                 Thread.Sleep(1000);
             }
 
+            SocketClient.RunClient();
+
             Console.Read();
         }
 
