@@ -6,7 +6,7 @@ namespace RaspberryPi
 {
     class FlowSensor : I2cSensor
     {
-        public FlowSensor(int deviceAddress = 0x08) : base(deviceAddress) { }
+        public FlowSensor(int deviceAddress = 0x04) : base(deviceAddress) { }
 
         public float FlowRate { get; private set; }
 
@@ -14,12 +14,31 @@ namespace RaspberryPi
         {
             var command = new byte[1];
 
-            var flowRateData = new byte[4];
+            var flowRateData = new byte[2];
 
-            command[0] = 0x00;
+            command[0] = 0x04;
             Device!.WriteRead(command, flowRateData);
 
-            FlowRate = BitConverter.ToSingle(flowRateData);
+            FlowRate = BitConverter.ToInt16(flowRateData);
+        }
+    }
+
+    class MoistureSensor : I2cSensor
+    {
+        public MoistureSensor(int deviceAddress = 0x08) : base(deviceAddress) { }
+
+        public float Moisture { get; private set; }
+
+        protected override void InternalUpdateValues()
+        {
+            var command = new byte[1];
+
+            var moistureData = new byte[2];
+
+            command[0] = 0x00;
+            Device!.WriteRead(command, moistureData);
+
+            Moisture = BitConverter.ToInt16(moistureData);
         }
     }
 

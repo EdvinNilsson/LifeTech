@@ -9,20 +9,7 @@ namespace RaspberryPi
     {
         static void Main(string[] args)
         {
-            /*
-            I2cDevice device = I2cDevice.Create(new I2cConnectionSettings(1, 8));
-            byte[] command = {15, 124};
-            byte[] result = new byte[4];
-            device.WriteRead(command, result);
-
-            foreach (var b in result)
-            {
-                Console.WriteLine(b);
-            }
-            */
-
-            var flowSensor = new FlowSensor();
-            flowSensor.UpdateValues();
+            var sensor = new MoistureSensor();
 
             SocketClient socketClient = new SocketClient("127.0.0.1");
             while (true) {
@@ -32,9 +19,9 @@ namespace RaspberryPi
                     Thread.Sleep(1000);
                 }
 
-                if (flowSensor.Online) {
-                    flowSensor.UpdateValues();
-                    socketClient.sendMessage(flowSensor.FlowRate.ToString());
+                if (sensor.Online) {
+                    sensor.UpdateValues();
+                    socketClient.sendMessage(sensor.Moisture.ToString());
                 } else {
                     Console.WriteLine("Oh no, the flow sensor is not online");
                 }
@@ -44,6 +31,11 @@ namespace RaspberryPi
             }
 
             socketClient.dissconnect();
+        }
+
+        static float NegativeFeedback(float expectedValue, float actualValue, float max = 10, float exponent = 2, float multiplier = 1)
+        {
+            return MathF.Min(MathF.Pow(expectedValue - actualValue, exponent) * multiplier, max);
         }
     }
 }
