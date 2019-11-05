@@ -17,7 +17,7 @@ namespace RaspberryPi
             catch (Exception e)
             {
                 Online = false;
-                Console.WriteLine($"Sensoravläsningsfel: {e.Message}\n{e.StackTrace}");
+                Console.WriteLine($"Sensoravläsningsfel: {e.Message}");
             }
         }
 

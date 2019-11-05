@@ -9,24 +9,23 @@ namespace RaspberryPi
     {
         static void Main(string[] args)
         {
-            /*
-            I2cDevice device = I2cDevice.Create(new I2cConnectionSettings(1, 8));
-            byte[] command = {15, 124};
-            byte[] result = new byte[4];
-            device.WriteRead(command, result);
+            var sensor = new MoistureSensor();
 
-            foreach (var b in result)
+            while (true)
             {
-                Console.WriteLine(b);
-            }
-            */
+                sensor.UpdateValues();
+                if (sensor.Online)
+                    Console.WriteLine(sensor.Moisture);
 
-            var flowSensor = new FlowSensor();
-            flowSensor.UpdateValues();
-            if (flowSensor.Online)
-                Console.WriteLine(flowSensor.FlowRate);
+                Thread.Sleep(1000);
+            }
 
             Console.Read();
+        }
+
+        static float NegativeFeedback(float expectedValue, float actualValue, float max = 10, float exponent = 2, float multiplier = 1)
+        {
+            return MathF.Min(MathF.Pow(expectedValue - actualValue, exponent) * multiplier, max);
         }
     }
 }
