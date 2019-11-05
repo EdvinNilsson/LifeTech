@@ -23,12 +23,27 @@ namespace RaspberryPi
 
             var flowSensor = new FlowSensor();
             flowSensor.UpdateValues();
-            if (flowSensor.Online)
-                Console.WriteLine(flowSensor.FlowRate);
 
-            SocketClient.RunClient();
+            SocketClient socketClient = new SocketClient("127.0.0.1");
+            while (true) {
+                while (!socketClient.sender.Connected) {
+                    Console.Write("Connecting to socket thing");
+                    socketClient.connect();
+                    Thread.Sleep(1000);
+                }
 
-            Console.Read();
+                if (flowSensor.Online) {
+                    flowSensor.UpdateValues();
+                    socketClient.sendMessage(flowSensor.FlowRate.ToString());
+                } else {
+                    Console.WriteLine("Oh no, the flow sensor is not online");
+                }
+
+
+                Thread.Sleep(1000);
+            }
+
+            socketClient.dissconnect();
         }
     }
 }
