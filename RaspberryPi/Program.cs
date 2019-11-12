@@ -11,7 +11,7 @@ namespace RaspberryPi
         {
             var sensor = new MoistureSensor();
 
-            SocketClient socketClient = new SocketClient("127.0.0.1");
+            SocketClient socketClient = new SocketClient("192.168.0.119");
             while (true) {
                 while (!socketClient.sender.Connected) {
                     Console.Write("Connecting to socket thing");
