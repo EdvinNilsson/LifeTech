@@ -19,8 +19,13 @@ namespace RaspberryPi {
         }
 
         public void connect() {
-            sender.Connect(localEndPoint);
-            Console.WriteLine("Socket connected to -> {0} ", sender.RemoteEndPoint.ToString());
+            try {
+                sender.Connect(localEndPoint);
+                Console.WriteLine("Socket connected to -> {0} ", sender.RemoteEndPoint.ToString());
+            }
+            catch {
+                return;
+            }
         }
 
         public void dissconnect() {
