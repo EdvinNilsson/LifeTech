@@ -14,7 +14,7 @@ namespace RaspberryPi
             SocketClient socketClient = new SocketClient("127.0.0.1");
             while (true) {
                 while (!socketClient.sender.Connected) {
-                    Console.Write("Connecting to socket thing");
+                    Console.WriteLine("Connecting to socket thing");
                     socketClient.connect();
                     Thread.Sleep(1000);
                 }
