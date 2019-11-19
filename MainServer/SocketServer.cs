@@ -8,28 +8,32 @@ namespace MainServer {
     class SocketServer {
 
         public static void RunServer() {
-            IPHostEntry ipHost = Dns.GetHostEntry("127.0.0.1");
-            IPAddress ipAddr = ipHost.AddressList[0];
+            IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress test in ipHost.AddressList) {
+                Console.WriteLine(test.ToString());
+            }
+
+            IPAddress ipAddr = ipHost.AddressList[7];
+            Console.WriteLine(ipAddr.ToString());
             IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
+
+            Console.WriteLine(ipAddr.AddressFamily);
 
             Socket listener = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             try {
                 listener.Bind(localEndPoint);
                 
-                listener.Listen(10);
+                listener.Listen(1);
+    
+                Console.WriteLine("Waiting for connection ... ");
+                Socket clientSocket = listener.Accept();
 
                 while (true) {
-
-                    Console.WriteLine("Waiting connection ... ");
-
-                    Socket clientSocket = listener.Accept();
-
                     byte[] bytes = new byte[1024];
                     string data = null;
 
                     while (true) {
-
                         int numByte = clientSocket.Receive(bytes);
 
                         data += Encoding.ASCII.GetString(bytes, 0, numByte);
@@ -43,8 +47,8 @@ namespace MainServer {
 
                     clientSocket.Send(message);
 
-                    clientSocket.Shutdown(SocketShutdown.Both);
-                    clientSocket.Close();
+                    //clientSocket.Shutdown(SocketShutdown.Both);
+                    //clientSocket.Close();
                 }
             }
 
