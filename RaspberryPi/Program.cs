@@ -11,26 +11,38 @@ namespace RaspberryPi
         {
             var sensor = new MoistureSensor();
 
-            SocketClient socketClient = new SocketClient("192.168.0.119");
-            while (true) {
-                while (!socketClient.sender.Connected) {
+            SocketClient socketClient = new SocketClient("192.168.192.88");
+            
+            while (true)
+            {
+                while (!socketClient.sender.Connected)
+                {
                     Console.WriteLine("Connecting to socket thing");
-                    socketClient.connect();
+                    try
+                    {
+                        socketClient.Connect();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
+
                     Thread.Sleep(1000);
                 }
 
-                if (sensor.Online) {
-                    sensor.UpdateValues();
-                    socketClient.sendMessage(sensor.Moisture.ToString());
-                } else {
+                socketClient.SendMessage("Hello there");
+
+                sensor.UpdateValues();
+
+                if (sensor.Online)
+                    socketClient.SendMessage(sensor.Moisture.ToString());
+                else
                     Console.WriteLine("Oh no, the flow sensor is not online");
-                }
-
-
+                
                 Thread.Sleep(1000);
             }
 
-            socketClient.dissconnect();
+            socketClient.Disconnect();
         }
 
         static float NegativeFeedback(float expectedValue, float actualValue, float max = 10, float exponent = 2, float multiplier = 1)

@@ -1,39 +1,39 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace RaspberryPi {
-    class SocketClient {
+namespace RaspberryPi
+{
+    class SocketClient
+    {
 
         public IPEndPoint localEndPoint;
         public Socket sender;
 
-        public SocketClient(string ip) {
-            IPHostEntry ipHost = Dns.GetHostEntry(ip);
-            IPAddress ipAddr = ipHost.AddressList[0];
-            localEndPoint = new IPEndPoint(ipAddr, 11111);
+        private IPAddress ipAddress;
 
-            sender = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+        public SocketClient(string ip)
+        {
+            ipAddress = IPAddress.Parse(ip);
+            localEndPoint = new IPEndPoint(ipAddress, 11111);
+            sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         }
 
-        public void connect() {
-            try {
-                sender.Connect(localEndPoint);
-                Console.WriteLine("Socket connected to -> {0} ", sender.RemoteEndPoint.ToString());
-            }
-            catch {
-                return;
-            }
+        public void Connect()
+        {
+            sender.Connect(localEndPoint);
+            Console.WriteLine("Socket connected to -> {0} ", localEndPoint);
         }
 
-        public void dissconnect() {
+        public void Disconnect()
+        {
             sender.Shutdown(SocketShutdown.Both);
             sender.Close();
         }
 
-        public string sendMessage(string message) {
+        public string SendMessage(string message)
+        {
             byte[] messageSent = Encoding.ASCII.GetBytes(message + "<EOF>");
             int byteSent = sender.Send(messageSent);
 
