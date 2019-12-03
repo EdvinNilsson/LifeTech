@@ -1,49 +1,55 @@
-﻿using System;
+﻿using MainServer;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace RaspberryPi
-{
-    class SocketClient
-    {
+namespace RaspberryPi {
+    class SocketClient {
 
         public IPEndPoint localEndPoint;
         public Socket sender;
 
         private IPAddress ipAddress;
 
-        public SocketClient(string ip)
-        {
+        public SocketClient(string ip) {
             ipAddress = IPAddress.Parse(ip);
             localEndPoint = new IPEndPoint(ipAddress, 11111);
             sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         }
 
-        public void Connect()
-        {
+        public void Connect() {
             sender.Connect(localEndPoint);
             Console.WriteLine("Socket connected to -> {0} ", localEndPoint);
         }
 
-        public void Disconnect()
-        {
+        public void Disconnect() {
             sender.Shutdown(SocketShutdown.Both);
             sender.Close();
         }
 
-        public string SendMessage(string message)
-        {
-            byte[] messageSent = Encoding.ASCII.GetBytes(message + "<EOF>");
-            int byteSent = sender.Send(messageSent);
+        public void SendMessage(string message) => SendMessage(Encoding.ASCII.GetBytes(message), MessageType.String);
 
-            byte[] messageReceived = new byte[1024];
+        public void SendMessage(byte[] message, MessageType messageType) {
+            /*NetworkStream networkStream = new NetworkStream(sender);
 
-            int byteRecv = sender.Receive(messageReceived);
-            Console.WriteLine("Message from Server -> {0}", Encoding.ASCII.GetString(messageReceived, 0, byteRecv));
+            if (networkStream.CanWrite) {
+                networkStream.Write( BitConverter.GetBytes((ushort)(message.Length + 1)));
+                networkStream.WriteByte((byte)messageType);
+                networkStream.Write(message, 0, message.Length);
+            }
 
-            return messageReceived.ToString();
+            networkStream.Dispose();*/
+
+            byte[] messageSent = new byte[message.Length + 1];
+            Buffer.BlockCopy(new[] { (byte)messageType }, 0, messageSent, 0, 1);
+            Buffer.BlockCopy(message, 0, messageSent, 1, message.Length);
+
+            try {
+                sender.Send(messageSent);
+            } catch (SocketException e) {
+
+            }
         }
-
     }
 }
