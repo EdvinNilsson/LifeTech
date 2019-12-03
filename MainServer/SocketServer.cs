@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.IO;
 
 namespace MainServer {
     class SocketServer {
@@ -30,22 +31,21 @@ namespace MainServer {
                 Socket clientSocket = listener.Accept();
 
                 while (true) {
-                    byte[] bytes = new byte[1024];
-                    string data = null;
+                    byte[] bytes = new byte[65535];
 
-                    while (true) {
-                        int numByte = clientSocket.Receive(bytes);
+                    int length = clientSocket.Receive(bytes);
+                    byte messageType = bytes[0];
 
-                        data += Encoding.ASCII.GetString(bytes, 0, numByte);
+                    Console.WriteLine("length: " + length + " type: " + (int)messageType);
 
-                        if (data.IndexOf("<EOF>") > -1)
-                            break;
-                    }
+                    Span<byte> bytesSpan = bytes.AsSpan<byte>(1, length - 1);
 
-                    Console.WriteLine("Text received -> {0} ", data);
-                    byte[] message = Encoding.ASCII.GetBytes("Test Server");
+                    Console.WriteLine("Message recieved epicly");
 
-                    clientSocket.Send(message);
+                    //Console.WriteLine("Text received -> {0} ", data);
+                    //byte[] message = Encoding.ASCII.GetBytes("Test Server");
+
+                    //clientSocket.Send(message);
 
                     //clientSocket.Shutdown(SocketShutdown.Both);
                     //clientSocket.Close();
