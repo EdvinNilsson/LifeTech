@@ -49,11 +49,35 @@ namespace MainServer {
 
                     //clientSocket.Shutdown(SocketShutdown.Both);
                     //clientSocket.Close();
+
+                    HandleMessage((MessageType)messageType, bytesSpan.ToArray());
                 }
             }
 
             catch (Exception e) {
                 Console.WriteLine(e.ToString());
+            }
+        }
+
+        public delegate void MessageDelegate(byte[] message);
+        static readonly Dictionary<MessageType, List<MessageDelegate>> MessageHandlers = new Dictionary<MessageType, List<MessageDelegate>>();
+
+        static void HandleMessage(MessageType messageType, byte[] message) {
+            try {
+                foreach (var messageHandler in MessageHandlers[messageType]) {
+                    messageHandler(message);
+                }
+            } catch (KeyNotFoundException) {
+                Console.WriteLine($"No handler for message type {(byte)messageType}.");
+            }
+        }
+
+        public static void RegisterHandler(MessageType messageType, MessageDelegate messageDelegate) {
+            try {
+                MessageHandlers[messageType].Add(messageDelegate);
+            } catch (KeyNotFoundException) {
+                MessageHandlers.Add(messageType, new List<MessageDelegate>());
+                MessageHandlers[messageType].Add(messageDelegate);
             }
         }
     }
