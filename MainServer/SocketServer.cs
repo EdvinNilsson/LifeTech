@@ -34,7 +34,7 @@ namespace MainServer {
                     byte[] bytes = new byte[65535];
 
                     int length = clientSocket.Receive(bytes);
-                    byte messageType = bytes[0];
+                    MessageType messageType = (MessageType)bytes[0];
 
                     Console.WriteLine("length: " + length + " type: " + (int)messageType);
 

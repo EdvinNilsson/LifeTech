@@ -17,4 +17,8 @@
     <Folder Include="Properties\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MainServer\MainServer.csproj" />
+  </ItemGroup>
+
 </Project>
