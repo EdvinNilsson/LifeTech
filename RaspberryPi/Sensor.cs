@@ -26,11 +26,11 @@ namespace RaspberryPi
 
     class I2cSensor : Sensor
     {
-        protected I2cSensor(int deviceAddress)
+        protected I2cSensor(int deviceAddress, int busId)
         {
             try
             {
-                Device = I2cDevice.Create(new I2cConnectionSettings(1, deviceAddress));
+                Device = I2cDevice.Create(new I2cConnectionSettings(busId, deviceAddress));
             }
             catch (Exception e)
             {

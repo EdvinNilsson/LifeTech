@@ -11,7 +11,7 @@ namespace RaspberryPi
 {
     class FlowSensor : I2cSensor
     {
-        public FlowSensor(int deviceAddress = 4) : base(deviceAddress) { }
+        public FlowSensor(int deviceAddress, int busId = 1) : base(deviceAddress, busId) { }
 
         public float FlowRate { get; private set; }
 
@@ -30,7 +30,7 @@ namespace RaspberryPi
 
     class MoistureSensor : I2cSensor
     {
-        public MoistureSensor(int deviceAddress = 8) : base(deviceAddress) { }
+        public MoistureSensor(int deviceAddress, int busId = 1) : base(deviceAddress, busId) { }
 
         public float Moisture { get; private set; }
 
@@ -49,10 +49,15 @@ namespace RaspberryPi
 
     class EnvironmentalSensor : I2cSensor
     {
-        public EnvironmentalSensor(int deviceAddress = 9) : base(deviceAddress)
+        public EnvironmentalSensor(int bme280DeviceAddress, int ccs811deviceAddress, int bme280BusId = 1, int ccs811BusId = 1) : base(bme280BusId, bme280DeviceAddress)
         {
-            I2cBme280 = new Bme280(Device);
-            Ccs811Bme280 = new CCS811BME280Sensor(Device);
+            if (Device != null)
+            {
+                I2cBme280 = new Bme280(Device);
+
+                Ccs811Bme280 = new CCS811BME280Sensor(I2cDevice.Create(new I2cConnectionSettings(ccs811BusId, ccs811deviceAddress)));
+                Ccs811Bme280.Initialize();
+            }
         }
 
         Bme280 I2cBme280;
@@ -77,7 +82,6 @@ namespace RaspberryPi
             Pressure = I2cBme280.ReadPressureAsync().Result;
             Temperature = I2cBme280.ReadTemperatureAsync().Result;
 
-            Ccs811Bme280.Initialize();
             var ccsData = Ccs811Bme280.ReadCO2TVOC();
             CO2 = ccsData[0];
             TVOC = ccsData[1];
