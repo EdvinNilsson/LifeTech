@@ -1,20 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
-using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
+using MimeTypes;
 
 namespace MainServer {
-    class Webserver {
+    class WebServer {
         static HttpListener listener = new HttpListener();
 
         public static void StartServer() {
             Routes.Initialize();
-            listener.Prefixes.Add("http://localhost:8080/");
-            //listener.Prefixes.Add("http://*:8080/");
+            string path = Path.GetFullPath("Public");
+            foreach (var file in Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories)) {
+                gets[file.Replace(path, "").Replace('\\', '/')] = delegate(HttpListenerContext context) {
+                    byte[] buffer = File.ReadAllBytes(file);
+                    context.Response.ContentLength64 = buffer.Length;
+                    context.Response.ContentType = MimeTypeMap.GetMimeType(Path.GetExtension(file));
+                    Stream output = context.Response.OutputStream;
+                    output.Write(buffer, 0, buffer.Length);
+                    output.Close();
+                };
+            }
+            listener.Prefixes.Add(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "http://localhost:8080/" : "http://*:8080/");
             listener.Start();
             listener.BeginGetContext(OnConnection, null);
         }
@@ -26,29 +39,46 @@ namespace MainServer {
 
         static void ProcessRequest(IAsyncResult result) {
             HttpListenerContext context = listener.EndGetContext(result);
-            
-            switch (context.Request.HttpMethod)
-            {
-                case "GET":
-                    if (!InvokePath(gets, context))
-                        goto default;
-                    break;
-                case "POST":
-                    if (!InvokePath(posts, context))
-                        goto default;
-                    break;
-                default:
-                    context.Response.StatusCode = 404;
-                    Stream output = context.Response.OutputStream;
-                    output.Close();
-                    break;
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()} {context.Request.RemoteEndPoint} {context.Request.Url.AbsolutePath}");
+            try {
+                context.Response.Headers.Set(HttpResponseHeader.Server, string.Empty);
+                switch (context.Request.HttpMethod) {
+                    case "GET":
+                        if (gets.TryGetValue(context.Request.Url.AbsolutePath, out var value))
+                                value.Invoke(context);
+                        else if (!InvokeDynamicPath(dynamicGets, context))
+                            goto default;
+                        break;
+                            case "POST":
+                        if (!InvokeDynamicPath(posts, context))
+                            goto default;
+                        break;
+                    default:
+                        ServerError(context, 404);
+                        break;
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+                ServerError(context, 500);
             }
         }
 
-        static bool InvokePath(Dictionary<string, Action<HttpListenerContext>> dic, HttpListenerContext context) {
+        static void ServerError(HttpListenerContext context, int errorCode) {
+            context.Response.StatusCode = errorCode;
+            Stream output = context.Response.OutputStream;
+            output.Close();
+        }
+
+        static bool InvokeDynamicPath(Dictionary<string, Action<HttpListenerContext, string[]>> dic, HttpListenerContext context) {
             foreach (var item in dic) {
-                if (Regex.IsMatch(context.Request.Url.AbsolutePath, item.Key)) {
-                    item.Value(context);
+                var match = Regex.Match(context.Request.Url.AbsolutePath, item.Key);
+                if (match.Success) {
+                    string[] groups = new string[match.Groups.Count - 1];
+                    for (int i = 0; i < groups.Length; ++i) {
+                        groups[i] = match.Groups[i + 1].Value;
+                    }
+                    item.Value(context, groups);
                     return true;
                 }
             }
@@ -58,25 +88,56 @@ namespace MainServer {
         public static void SimpleTextResponse(HttpListenerResponse response, string responseString) {
             byte[] buffer = Encoding.UTF8.GetBytes(responseString);
             response.ContentLength64 = buffer.Length;
+            response.ContentType = "text/html";
             Stream output = response.OutputStream;
             output.Write(buffer, 0, buffer.Length);
             output.Close();
         }
 
-        static string ToRegex(string input) => $"^{input.Replace("/", @"\/").Replace("*", ".*")}$";
-
-        static readonly Dictionary<string, Action<HttpListenerContext>> gets = new Dictionary<string, Action<HttpListenerContext>>();
-        public static void Get(string path, Action<HttpListenerContext> action) => gets[ToRegex(path)] = action;
-        public static void Get(string path, Func<string> func) {
-            gets[ToRegex(path)] = delegate (HttpListenerContext context) { SimpleTextResponse(context.Response, func()); };
+        public static NameValueCollection GetParameters(HttpListenerContext context) {
+            switch (context.Request.HttpMethod) {
+                case "GET": return context.Request.QueryString;
+                case "POST":
+                    Stream input = context.Request.InputStream;
+                    byte[] buffer = new byte[context.Request.ContentLength64];
+                    input.Read(buffer, 0, buffer.Length);
+                    input.Close();
+                    return HttpUtility.ParseQueryString(Encoding.UTF8.GetString(buffer));
+            }
+            return null;
         }
-        public static void Get(string path, Func<string, string> func) {
-            gets[ToRegex(path)] = delegate (HttpListenerContext context) { SimpleTextResponse(context.Response, func(GetId(context))); };
+
+        public static void Redirect(HttpListenerContext context, string url) {
+            Stream output = context.Response.OutputStream;
+            context.Response.Redirect(url);
+            output.Close();
         }
 
-        static readonly Dictionary<string, Action<HttpListenerContext>> posts = new Dictionary<string, Action<HttpListenerContext>>();
-        public static void Post(string path, Action<HttpListenerContext> action) => posts[ToRegex(path)] = action;
+        static string ToRegex(string input) => $"^{input.Replace("/", @"\/").Replace("*", "(.*)")}$";
 
-        public static string GetId(HttpListenerContext context) => context.Request.Url.AbsolutePath.Split('/').Last();
+        static Dictionary<string, Action<HttpListenerContext, string[]>> dynamicGets = new Dictionary<string, Action<HttpListenerContext, string[]>>();
+        static Dictionary<string, Action<HttpListenerContext>> gets = new Dictionary<string, Action<HttpListenerContext>>();
+
+        public static void Get(string path, Action<HttpListenerContext> action) => gets[path] = action;
+        public static void Get(string path, Action<HttpListenerContext, string[]> action) => dynamicGets[ToRegex(path)] = action;
+        public static void Get(string path, Func<HttpListenerContext, string> func, string title = null) =>
+            gets[path] = delegate (HttpListenerContext context) { SimpleTextResponse(context.Response, GenerateHTML(func(context), title)); };
+        
+        public static void Get(string path, Func<HttpListenerContext, string[], string> func, string title = null) =>
+            dynamicGets[ToRegex(path)] = delegate (HttpListenerContext context, string[] groups)
+                { SimpleTextResponse(context.Response, GenerateHTML(func(context, groups), title)); };
+
+        static Dictionary<string, Action<HttpListenerContext, string[]>> posts = new Dictionary<string, Action<HttpListenerContext, string[]>>();
+        public static void Post(string path, Action<HttpListenerContext, string[]> action) => posts[ToRegex(path)] = action;
+
+        public static string GenerateHTML(string content, string title = null) {
+            StringBuilder sb = new StringBuilder(File.ReadAllText("Views/index.html"));
+            return sb
+                .Replace("#{title}", title == null ? "NTI Lifetech" : $"{title} - NTI Lifetech")
+                .Replace("#{content}", content)
+                .Replace("\n", "")
+                .Replace("\t", "")
+                .ToString();
+        }
     }
 }

@@ -9,13 +9,13 @@ namespace MainServer
 
         static void Main(string[] args)
         {
-            Thread webserverThread = new Thread(new ThreadStart(Webserver.StartServer));
-            Thread socketServerThread = new Thread(new ThreadStart(SocketServer.RunServer));
+            Thread webServerThread = new Thread(WebServer.StartServer);
+            Thread socketServerThread = new Thread(SocketServer.RunServer);
 
-            webserverThread.Start();
+            webServerThread.Start();
             socketServerThread.Start();
 
-            webserverThread.Join();
+            webServerThread.Join();
             socketServerThread.Join();
             Console.Read();
         }
