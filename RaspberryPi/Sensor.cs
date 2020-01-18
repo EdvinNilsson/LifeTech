@@ -3,7 +3,7 @@ using System.Device.I2c;
 
 namespace RaspberryPi
 {
-    class Sensor
+    public class Sensor
     { 
         public bool Online { get; protected set; }
 
@@ -22,12 +22,15 @@ namespace RaspberryPi
         }
 
         protected virtual void InternalUpdateValues() { }
+
+        public virtual SensorValue[] GetSensorValues() { return new SensorValue[0]; }
     }
 
     class I2cSensor : Sensor
     {
-        protected I2cSensor(int deviceAddress, int busId)
+        protected I2cSensor(int deviceAddress, byte cmd, int busId)
         {
+            this.cmd = new[] { cmd };
             try
             {
                 Device = I2cDevice.Create(new I2cConnectionSettings(busId, deviceAddress));
@@ -40,5 +43,27 @@ namespace RaspberryPi
         }
 
         public I2cDevice? Device { get; }
+
+        byte[] cmd;
+
+        protected byte[] ReadBytes(int length) {
+            var dataArray = new byte[length];
+            Device!.WriteRead(cmd, dataArray);
+            return dataArray;
+        }
+
+        protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2));
+    }
+
+    public class SensorValue
+    {
+        public SensorValue(SensorValueType type, float value)
+        {
+            this.type = type;
+            this.value = value;
+        }
+
+        public SensorValueType type;
+        public float value;
     }
 }
