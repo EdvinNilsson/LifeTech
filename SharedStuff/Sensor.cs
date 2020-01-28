@@ -26,7 +26,7 @@ namespace SharedStuff
         public virtual SensorValue[] GetSensorValues() { return new SensorValue[0]; }
     }
 
-    class I2cSensor : Sensor
+    public class I2cSensor : Sensor
     {
         protected I2cSensor(int deviceAddress, byte cmd, int busId)
         {

@@ -4,28 +4,28 @@ using System.IO;
 
 namespace SharedStuff
 {
-    class SensorData {
+    public class SensorData {
 
         public SensorData(byte[] bytes)
         {
             Stream stream = new MemoryStream(bytes);
             using (BinaryReader reader = new BinaryReader(stream)) {
-                timeStamp = UnixTimeToDateTime(reader.ReadInt32());
-                sensors = new SensorValue[(bytes.Length - 4) / 5];
-                for (int i = 0; i < sensors.Length; i++) {
-                    sensors[i] = new SensorValue((SensorValueType)reader.ReadByte(),  reader.ReadSingle());
+                Timestamp = UnixTimeToDateTime(reader.ReadInt32());
+                Sensors = new SensorValue[(bytes.Length - 4) / 5];
+                for (int i = 0; i < Sensors.Length; i++) {
+                    Sensors[i] = new SensorValue((SensorValueType)reader.ReadByte(),  reader.ReadSingle());
                 }
             }
         }
 
-        public SensorData(DateTime timeStamp, Sensor[] sensors)
+        public SensorData(DateTime timestamp, Sensor[] sensors)
         {
-            this.timeStamp = timeStamp;
+            Timestamp = timestamp;
             List<SensorValue> tempList = new List<SensorValue>();
             foreach (var sensor in sensors) {
                 tempList.AddRange(sensor.GetSensorValues());
             }
-            this.sensors = tempList.ToArray();
+            Sensors = tempList.ToArray();
         }
 
         DateTime UnixTimeToDateTime(int unixTime) {
@@ -34,19 +34,19 @@ namespace SharedStuff
             return dtDateTime;
         }
 
-        DateTime timeStamp;
+        public DateTime Timestamp;
 
-        SensorValue[] sensors;
+        public SensorValue[] Sensors;
 
         public byte[] Serialize()
         {
-            byte[] bytes = new byte[4 + 5 * sensors.Length];
+            byte[] bytes = new byte[4 + 5 * Sensors.Length];
 
             Stream stream = new MemoryStream(bytes);
 
             using (BinaryWriter writer = new BinaryWriter(stream)) {
-                writer.Write((int)((DateTimeOffset)timeStamp).ToUnixTimeSeconds());
-                foreach (var sensor in sensors) {
+                writer.Write((int)((DateTimeOffset)Timestamp).ToUnixTimeSeconds());
+                foreach (var sensor in Sensors) {
                     writer.Write((byte)sensor.type);
                     writer.Write(sensor.value);
                 }

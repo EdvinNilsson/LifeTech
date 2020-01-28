@@ -1,3 +1,3 @@
 ﻿namespace SharedStuff {
-    public enum MessageType : byte { Sensordata, Image }
+    public enum MessageType : byte { SensorData, Image }
 }
