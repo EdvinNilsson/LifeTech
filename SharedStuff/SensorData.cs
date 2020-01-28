@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-namespace RaspberryPi {
+
+namespace SharedStuff
+{
     class SensorData {
 
         public SensorData(byte[] bytes)
@@ -52,5 +54,17 @@ namespace RaspberryPi {
             stream.Close();
             return bytes;
         }
+
+    }
+    public class SensorValue
+    {
+        public SensorValue(SensorValueType type, float value)
+        {
+            this.type = type;
+            this.value = value;
+        }
+
+        public SensorValueType type;
+        public float value;
     }
 }

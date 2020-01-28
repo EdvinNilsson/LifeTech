@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using SharedStuff;
 
 namespace MainServer {
     class DatabaseHandler {
-        public static uint addTimestamp() {
-            Console.WriteLine("Timestamp created: " + 1);
-            return 1;
+        public DatabaseHandler() {
+            SocketServer.RegisterHandler(MessageType.Sensordata, SensorDataHandler);
+            SocketServer.RegisterHandler(MessageType.Image, ImageHandler);
         }
 
-        public static void addSensorData(float data, uint sensortype_id, uint timestamp_id) {
-            Console.WriteLine(data + ", " + sensortype_id + " , " + timestamp_id);
+        public void SensorDataHandler(byte[] bytes) {
+            
+        }
+        public void ImageHandler(byte[] bytes) {
+            Console.Out.WriteLine("Image thing");
         }
     }
 }

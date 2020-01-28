@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Device.I2c;
 
-namespace RaspberryPi
+namespace SharedStuff
 {
     public class Sensor
     { 
@@ -53,17 +53,5 @@ namespace RaspberryPi
         }
 
         protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2));
-    }
-
-    public class SensorValue
-    {
-        public SensorValue(SensorValueType type, float value)
-        {
-            this.type = type;
-            this.value = value;
-        }
-
-        public SensorValueType type;
-        public float value;
     }
 }

@@ -4,17 +4,20 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.IO;
+using SharedStuff;
 
 namespace MainServer {
     class SocketServer {
 
         public static void RunServer() {
+
+
             IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
             foreach (IPAddress test in ipHost.AddressList) {
                 Console.WriteLine(test.ToString());
             }
 
-            IPAddress ipAddr = ipHost.AddressList[7];
+            IPAddress ipAddr = ipHost.AddressList[3];
             Console.WriteLine(ipAddr.ToString());
             IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
 

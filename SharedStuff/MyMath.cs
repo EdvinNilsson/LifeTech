@@ -1,4 +1,4 @@
-﻿namespace RaspberryPi
+﻿namespace SharedStuff
 {
     public static class MyMath
     {

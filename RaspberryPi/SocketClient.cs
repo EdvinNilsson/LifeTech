@@ -1,8 +1,8 @@
-﻿using MainServer;
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using 
 
 namespace RaspberryPi {
     class SocketClient {
@@ -28,7 +28,7 @@ namespace RaspberryPi {
             sender.Close();
         }
 
-        public void SendMessage(string message) => SendMessage(Encoding.ASCII.GetBytes(message), MessageType.String);
+        //public void SendMessage(string message) => SendMessage(Encoding.ASCII.GetBytes(message), MessageType.String);
 
         public void SendMessage(byte[] message, MessageType messageType) {
             /*NetworkStream networkStream = new NetworkStream(sender);

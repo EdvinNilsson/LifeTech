@@ -4,9 +4,9 @@ using Iot.Device.Bmxx80.PowerMode;
 using Iot.Units;
 using System.Device.I2c;
 using System.IO;
+using static SharedStuff.MyMath;
 
-namespace RaspberryPi {
-
+namespace SharedStuff {
     public enum SensorValueType : byte { FlowRate, Moisture, Light, Humidity, Pressure, Temperature, CO2, TVOC, CpuTemp }
 
     class FlowSensor : I2cSensor {

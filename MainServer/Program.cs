@@ -9,6 +9,7 @@ namespace MainServer
 
         static void Main(string[] args)
         {
+            DatabaseHandler databaseHandler = new DatabaseHandler();
             Thread webServerThread = new Thread(WebServer.StartServer);
             Thread socketServerThread = new Thread(SocketServer.RunServer);
 
