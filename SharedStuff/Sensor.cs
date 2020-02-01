@@ -7,6 +7,8 @@ namespace SharedStuff
     { 
         public bool Online { get; protected set; }
 
+        public byte SensorId { get; set; }
+
         public void UpdateValues()
         {
             try
@@ -53,5 +55,7 @@ namespace SharedStuff
         }
 
         protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2));
+
+        protected float ReadFloat() => BitConverter.ToSingle(ReadBytes(4));
     }
 }

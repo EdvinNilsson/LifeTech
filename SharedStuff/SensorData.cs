@@ -9,21 +9,20 @@ namespace SharedStuff
         public SensorData(byte[] bytes)
         {
             Stream stream = new MemoryStream(bytes);
-            using (BinaryReader reader = new BinaryReader(stream)) {
-                Timestamp = UnixTimeToDateTime(reader.ReadInt32());
-                Sensors = new SensorValue[(bytes.Length - 4) / 5];
-                for (int i = 0; i < Sensors.Length; i++) {
-                    Sensors[i] = new SensorValue((SensorValueType)reader.ReadByte(),  reader.ReadSingle());
-                }
+            using BinaryReader reader = new BinaryReader(stream);
+            Timestamp = reader.ReadInt32();
+            Sensors = new SensorValue[(bytes.Length - 4) / 6];
+            for (int i = 0; i < Sensors.Length; i++) {
+                Sensors[i] = new SensorValue(reader.ReadByte(), (SensorValueType)reader.ReadByte(),  reader.ReadSingle());
             }
         }
 
         public SensorData(DateTime timestamp, Sensor[] sensors)
         {
-            Timestamp = timestamp;
+            Timestamp = (int)((DateTimeOffset)timestamp).ToUnixTimeSeconds();
             List<SensorValue> tempList = new List<SensorValue>();
             foreach (var sensor in sensors) {
-                tempList.AddRange(sensor.GetSensorValues());
+                if (sensor.Online) tempList.AddRange(sensor.GetSensorValues());
             }
             Sensors = tempList.ToArray();
         }
@@ -34,19 +33,20 @@ namespace SharedStuff
             return dtDateTime;
         }
 
-        public DateTime Timestamp;
+        public int Timestamp;
 
         public SensorValue[] Sensors;
 
         public byte[] Serialize()
         {
-            byte[] bytes = new byte[4 + 5 * Sensors.Length];
+            byte[] bytes = new byte[4 + 6 * Sensors.Length];
 
             Stream stream = new MemoryStream(bytes);
 
             using (BinaryWriter writer = new BinaryWriter(stream)) {
-                writer.Write((int)((DateTimeOffset)Timestamp).ToUnixTimeSeconds());
+                writer.Write(Timestamp);
                 foreach (var sensor in Sensors) {
+                    writer.Write(sensor.id);
                     writer.Write((byte)sensor.type);
                     writer.Write(sensor.value);
                 }
@@ -58,12 +58,20 @@ namespace SharedStuff
     }
     public class SensorValue
     {
-        public SensorValue(SensorValueType type, float value)
-        {
+        public SensorValue(byte id, SensorValueType type, float value) {
+            this.id = id;
             this.type = type;
             this.value = value;
         }
 
+        public SensorValue(Sensor sensor, SensorValueType type, float value)
+        {
+            id = sensor.SensorId;
+            this.type = type;
+            this.value = value;
+        }
+
+        public byte id;
         public SensorValueType type;
         public float value;
     }

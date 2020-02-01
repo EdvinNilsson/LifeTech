@@ -8,7 +8,7 @@ using System.IO;
 
 
 namespace SharedStuff {
-    public enum SensorValueType : byte { FlowRate, Moisture, Light, Humidity, Pressure, Temperature, CO2, TVOC, CpuTemp }
+    public enum SensorValueType : byte { FlowRate, Moisture, Light, Humidity, Pressure, Temperature, CO2, TVOC, CpuTemp, pH, Debug }
 
     public class FlowSensor : I2cSensor {
         public FlowSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
@@ -20,7 +20,7 @@ namespace SharedStuff {
         }
 
         public override SensorValue[] GetSensorValues() {
-            return new[] {new SensorValue(SensorValueType.FlowRate, FlowRate)};
+            return new[] {new SensorValue(this, SensorValueType.FlowRate, FlowRate)};
         }
     }
 
@@ -33,7 +33,7 @@ namespace SharedStuff {
             Moisture = ReadInt16().Map(0, 1000, 0, 1);
         }
         public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(SensorValueType.Moisture, Moisture) };
+            return new[] { new SensorValue(this, SensorValueType.Moisture, Moisture) };
         }
     }
 
@@ -47,7 +47,35 @@ namespace SharedStuff {
         }
 
         public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(SensorValueType.Light, Light) };
+            return new[] { new SensorValue(this, SensorValueType.Light, Light) };
+        }
+    }
+
+    public class pHSensor : I2cSensor {
+        public pHSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
+
+        public float pH { get; private set; }
+
+        protected override void InternalUpdateValues() {
+            pH = ReadFloat();
+        }
+
+        public override SensorValue[] GetSensorValues() {
+            return new[] { new SensorValue(this, SensorValueType.pH, pH) };
+        }
+    }
+
+    public class TemperatureSensor : I2cSensor {
+        public TemperatureSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
+
+        public float Temperature { get; private set; }
+
+        protected override void InternalUpdateValues() {
+            Temperature = ReadFloat();
+        }
+
+        public override SensorValue[] GetSensorValues() {
+            return new[] { new SensorValue(this, SensorValueType.Temperature, Temperature) };
         }
     }
 
@@ -93,11 +121,11 @@ namespace SharedStuff {
         public override SensorValue[] GetSensorValues() {
             return new[]
             {
-                new SensorValue(SensorValueType.Humidity, (float)Humidity),
-                new SensorValue(SensorValueType.Pressure, (float)Pressure),
-                new SensorValue(SensorValueType.Temperature, (float)Temperature.Celsius),
-                new SensorValue(SensorValueType.CO2, CO2),
-                new SensorValue(SensorValueType.TVOC, TVOC)
+                new SensorValue(this, SensorValueType.Humidity, (float)Humidity),
+                new SensorValue(this, SensorValueType.Pressure, (float)Pressure),
+                new SensorValue(this, SensorValueType.Temperature, (float)Temperature.Celsius),
+                new SensorValue(this, SensorValueType.CO2, CO2),
+                new SensorValue(this, SensorValueType.TVOC, TVOC)
             };
         }
     }
@@ -110,7 +138,20 @@ namespace SharedStuff {
         }
 
         public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(SensorValueType.CpuTemp, CpuTemp) };
+            return new[] { new SensorValue(this, SensorValueType.CpuTemp, CpuTemp) };
+        }
+    }
+
+    public class DebugSensor : Sensor {
+        public float Value { get; private set; }
+
+        protected override void InternalUpdateValues() {
+            Random rnd = new Random();
+            Value = (float)rnd.NextDouble();
+        }
+
+        public override SensorValue[] GetSensorValues() {
+            return new[] { new SensorValue(this, SensorValueType.Debug, Value) };
         }
     }
 }
