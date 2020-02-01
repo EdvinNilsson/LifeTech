@@ -1,6 +1,7 @@
 ﻿using System;
 using SharedStuff;
 using Microsoft.Data.Sqlite;
+using System.IO;
 
 namespace MainServer {
     class DatabaseHandler {
@@ -40,7 +41,7 @@ namespace MainServer {
             }
         }
         public void ImageHandler(byte[] bytes) {
-            Console.Out.WriteLine("Image thing");
+            File.WriteAllBytes("Images/" + DateTime.Now.ToString() + ".jpg", bytes);
         }
     }
 }
