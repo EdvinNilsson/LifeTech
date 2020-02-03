@@ -1,45 +1,53 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Device.I2c;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using SharedStuff;
+using Iot.Device.CharacterLcd;
 
 namespace RaspberryPi
 {
     class Program
     {
+        static void SendSensorData(Sensor[] sensors, SocketClient socketClient)
+        {
+            SensorData sensorData = new SensorData(DateTime.Now, sensors);
+            foreach (var sensor in sensorData.Sensors)
+            {
+                Console.WriteLine( $"{sensor.type} {sensor.value}");
+            }
+            socketClient.SendMessage(sensorData.Serialize(), MessageType.SensorData);
+        }
+
         static void Main(string[] args)
         {
-            var sensor = new MoistureSensor();
+            SocketClient socketClient = new SocketClient("192.168.192.160");
+            socketClient.Connect();
 
-            SocketClient socketClient = new SocketClient("192.168.192.88");
-            
+            SensorList.Initialize();
+
+            using (var lcd = new Lcd1602(18, 5, new[] {6, 16, 20, 21}))
+            {
+                lcd.Write("Hello World!");
+            }
+
             while (true)
             {
-                while (!socketClient.sender.Connected)
+                foreach (var sensor in SensorList.sensors)
                 {
-                    Console.WriteLine("Connecting to socket thing");
-                    try
-                    {
-                        socketClient.Connect();
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                    }
-
-                    Thread.Sleep(1000);
+                    sensor.UpdateValues();
                 }
 
-                socketClient.SendMessage("Hello there");
+                SendSensorData(SensorList.sensors, socketClient);
 
-                sensor.UpdateValues();
-
-                if (sensor.Online)
-                    socketClient.SendMessage(sensor.Moisture.ToString());
-                else
-                    Console.WriteLine("Oh no, the flow sensor is not online");
-                
-                Thread.Sleep(1000);
+                int sec = DateTime.Now.Second;
+                while (DateTime.Now.Second == sec)
+                {
+                    Thread.Sleep(1);
+                }
             }
 
             socketClient.Disconnect();

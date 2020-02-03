@@ -5,11 +5,9 @@ namespace MainServer
 {
     class Program
     {
-        //Negative feedback loop
-
         static void Main(string[] args)
         {
-            DatabaseHandler databaseHandler = new DatabaseHandler();
+            DatabaseHandler.Initialize();
             Thread webServerThread = new Thread(WebServer.StartServer);
             Thread socketServerThread = new Thread(SocketServer.RunServer);
 

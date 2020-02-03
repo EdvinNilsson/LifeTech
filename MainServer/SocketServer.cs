@@ -11,17 +11,16 @@ namespace MainServer {
 
         public static void RunServer() {
 
-
             IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (IPAddress test in ipHost.AddressList) {
-                Console.WriteLine(test.ToString());
+            IPAddress ipAddr = ipHost.AddressList[0];
+            foreach (IPAddress ip in ipHost.AddressList) {
+                if (ip.AddressFamily == AddressFamily.InterNetwork) {
+                    ipAddr = ip;
+                }
             }
 
-            IPAddress ipAddr = ipHost.AddressList[3];
-            Console.WriteLine(ipAddr.ToString());
             IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
-
-            Console.WriteLine(ipAddr.AddressFamily);
+            Console.WriteLine($"Listening on {localEndPoint}");
 
             Socket listener = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -53,7 +52,7 @@ namespace MainServer {
                     //clientSocket.Shutdown(SocketShutdown.Both);
                     //clientSocket.Close();
 
-                    HandleMessage((MessageType)messageType, bytesSpan.ToArray());
+                    HandleMessage(messageType, bytesSpan.ToArray());
                 }
             }
 

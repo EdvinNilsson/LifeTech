@@ -1,0 +1,86 @@
+﻿<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js"></script>
+<canvas id="myChart"></canvas>
+<script>
+	var ctx = document.getElementById('myChart').getContext('2d');
+	var myChart = new Chart(ctx, {
+		type: 'line',
+		data: {
+			//labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			/*datasets: [{
+				label: 'Sensor',
+				//data: [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [2, 4, 3, 4, 5, 6, 7, 8, 9, 10]],
+				data: [],
+				borderWidth: 1
+			}]*/
+		},
+		options: {
+			scales: {
+				yAxes: [{
+					ticks: {
+						beginAtZero: true
+					}
+				}]
+			}
+		}
+	});
+
+	function httpGet(url, responseCallback) {
+		var xhr = new XMLHttpRequest();
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState == XMLHttpRequest.DONE) {
+				responseCallback(xhr.responseText, xhr.status != 200);
+			}
+		}
+		xhr.onerror = function() { responseCallback(null, true); };
+		xhr.open('GET', url, true);
+		xhr.send(null);
+	}
+
+	function updateGraph() {
+		var sensors = myChart.data.datasets.filter(c => !c._meta[0].hidden).map(c => c.sensorId).join(',');
+		//myChart.data.datasets[1]._meta[0].hidden
+		httpGet('/get-latest-sensor-value?sensors=' + sensors, function (response, error) {
+			myChart.data.labels.push(new Date().toLocaleString());
+			if (!error) {
+				response.split(' ').forEach(value => {
+					value = value.split(',');
+					myChart.data.datasets.filter(c => c.sensorId == value[0])[0].data.push(parseFloat(value[2]));
+
+				});
+			}
+			//myChart.data.datasets[0].data.push(error ? NaN : response.split(',').map(Number));
+			myChart.update({
+				duration: 300,
+				easing: 'easeInOutSine'
+			});
+			updateGraph();
+		});
+	}
+
+	httpGet('/get-sensordata?sensors=0,1,2,3', function (response, error) {
+		var parts = response.split('|');
+		var date = new Date(parts[0] * 1000 - 1000);
+		var data = JSON.parse(parts[1]);
+		for (const [key, value] of Object.entries(data)) {
+			for (const [key2, value2] of Object.entries(value)) {
+				myChart.data.datasets.push({
+					label: key + ' ' + key2,
+					data: value2.map(c => c == 0 ? NaN : c),
+					sensorId: key
+				});
+				var samples = value2.length;
+				//myChart.data.datasets[0].data = value2;
+				//myChart.data.labels = value2.map(String);
+			}
+		}
+		myChart.data.labels = Array(samples).fill().map(() => {
+			date.setSeconds(date.getSeconds() + 1); return date.toLocaleString();
+		});
+		//myChart.data.datasets[data.]
+		//myChart.data.labels = response.split(',');
+		//myChart.data.datasets[0].data = myChart.data.labels.map(Number);
+		myChart.update();
+		updateGraph();
+	});
+
+</script>
