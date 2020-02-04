@@ -19,8 +19,19 @@ namespace RaspberryPi {
         }
 
         public void Connect() {
-            sender.Connect(localEndPoint);
-            Console.WriteLine("Socket connected to -> {0} ", localEndPoint);
+            while (true) {
+                try {
+                    sender.Connect(localEndPoint);
+                    Console.WriteLine("Socket connected to -> {0} ", localEndPoint);
+                    return;
+                }
+                catch {
+                    sender.Dispose();
+                    sender = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+                    Console.WriteLine("Could not connect to socket server");
+                }
+            }
         }
 
         public void Disconnect() {
@@ -30,16 +41,7 @@ namespace RaspberryPi {
 
         //public void SendMessage(string message) => SendMessage(Encoding.ASCII.GetBytes(message), MessageType.String);
 
-        public void SendMessage(byte[] message, MessageType messageType) {
-            /*NetworkStream networkStream = new NetworkStream(sender);
-
-            if (networkStream.CanWrite) {
-                networkStream.Write( BitConverter.GetBytes((ushort)(message.Length + 1)));
-                networkStream.WriteByte((byte)messageType);
-                networkStream.Write(message, 0, message.Length);
-            }
-
-            networkStream.Dispose();*/
+        public bool SendMessage(byte[] message, MessageType messageType) {
 
             byte[] messageSent = new byte[message.Length + 1];
             Buffer.BlockCopy(new[] { (byte)messageType }, 0, messageSent, 0, 1);
@@ -48,8 +50,10 @@ namespace RaspberryPi {
             try {
                 sender.Send(messageSent);
             } catch (SocketException e) {
-
+                return false;
             }
+
+            return true;
         }
     }
 }

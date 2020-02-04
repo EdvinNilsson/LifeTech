@@ -24,15 +24,17 @@ namespace RaspberryPi
 
         static void Main(string[] args)
         {
-            SocketClient socketClient = new SocketClient("192.168.192.160");
+            SocketClient socketClient = new SocketClient("192.168.192.101");
+            Console.WriteLine("hello");
             socketClient.Connect();
+            Console.WriteLine("Yes");
 
             SensorList.Initialize();
 
-            using (var lcd = new Lcd1602(18, 5, new[] {6, 16, 20, 21}))
-            {
-                lcd.Write("Hello World!");
-            }
+            //using (var lcd = new Lcd1602(18, 5, new[] {6, 16, 20, 21}))
+            //{
+            //    lcd.Write("Hello World!");
+            //}
 
             while (true)
             {
@@ -41,7 +43,13 @@ namespace RaspberryPi
                     sensor.UpdateValues();
                 }
 
-                SendSensorData(SensorList.sensors, socketClient);
+                if (socketClient.sender.Connected) {
+                    SendSensorData(SensorList.sensors, socketClient);
+                    Console.WriteLine("connected");
+                } else {
+                    socketClient.Connect();
+                    Console.WriteLine("Not connected");
+                }
 
                 int sec = DateTime.Now.Second;
                 while (DateTime.Now.Second == sec)
