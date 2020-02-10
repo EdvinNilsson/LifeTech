@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace SharedStuff
 {
@@ -14,6 +16,35 @@ namespace SharedStuff
                 dictionary.Add(key, new TValue());
                 return dictionary[key];
             }
+        }
+        
+        public static TimeSpan Round(this TimeSpan time, TimeSpan roundingInterval, MidpointRounding roundingType) {
+            return new TimeSpan(
+                Convert.ToInt64(Math.Round(
+                    time.Ticks / (decimal)roundingInterval.Ticks,
+                    roundingType
+                )) * roundingInterval.Ticks
+            );
+        }
+        public static TimeSpan Round(this TimeSpan time, TimeSpan roundingInterval) => Round(time, roundingInterval, MidpointRounding.ToEven);
+        public static DateTime Round(this DateTime datetime, TimeSpan roundingInterval) => new DateTime((datetime - DateTime.MinValue).Round(roundingInterval).Ticks);
+
+        public static string Bash(this string cmd) {
+            var escapedArgs = cmd.Replace("\"", "\\\"");
+
+            var process = new Process() {
+                StartInfo = new ProcessStartInfo {
+                    FileName = "/bin/bash",
+                    Arguments = $"-c \"{escapedArgs}\"",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+            process.Start();
+            string result = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            return result;
         }
     }
 }

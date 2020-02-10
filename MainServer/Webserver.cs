@@ -45,11 +45,11 @@ namespace MainServer {
                 switch (context.Request.HttpMethod) {
                     case "GET":
                         if (gets.TryGetValue(context.Request.Url.AbsolutePath, out var value))
-                                value.Invoke(context);
+                            value.Invoke(context);
                         else if (!InvokeDynamicPath(dynamicGets, context))
                             goto default;
                         break;
-                            case "POST":
+                    case "POST":
                         if (!InvokeDynamicPath(posts, context))
                             goto default;
                         break;
@@ -58,13 +58,14 @@ namespace MainServer {
                         break;
                 }
             }
+            catch (HttpListenerException) { }
             catch (Exception e) {
                 Console.WriteLine(e);
                 ServerError(context, 500);
             }
         }
 
-        static void ServerError(HttpListenerContext context, int errorCode) {
+        public static void ServerError(HttpListenerContext context, int errorCode) {
             context.Response.StatusCode = errorCode;
             Stream output = context.Response.OutputStream;
             output.Close();
@@ -132,12 +133,8 @@ namespace MainServer {
 
         public static string GenerateHTML(string content, string title = null) {
             StringBuilder sb = new StringBuilder(File.ReadAllText("Views/index.html"));
-            return sb
-                .Replace("#{title}", title == null ? "NTI Lifetech" : $"{title} - NTI Lifetech")
-                .Replace("#{content}", content)
-                .Replace("\n", "")
-                .Replace("\t", "")
-                .ToString();
+            return string.Format(sb.Replace("\n", string.Empty).Replace("\t", string.Empty).ToString(),
+                title == null ? "NTI Life Tech" : $"{title} - NTI Life Tech", content);
         }
     }
 }

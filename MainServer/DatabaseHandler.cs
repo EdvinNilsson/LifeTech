@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Text;
 using System.Threading;
@@ -23,13 +24,20 @@ namespace MainServer {
             CreateSensorTables(SensorList.sensors.Length);
         }
 
+        static void ConnectToDb() {
+            while (sql.State != ConnectionState.Closed) {
+                Thread.Sleep(1);
+            }
+            sql.Open();
+        }
+
         public static void SensorDataHandler(byte[] bytes) {
             SensorData sensorData = new SensorData(bytes);
             OnReceivedSensorData?.Invoke(sensorData);
             OnReceivedSensorData = null;
 
             using (sql) {
-                sql.Open();
+                ConnectToDb();
                 var command = sql.CreateCommand();
 
                 command.Parameters.AddWithValue("$time", sensorData.Timestamp);
@@ -57,12 +65,12 @@ namespace MainServer {
         }
 
         public static void ImageHandler(byte[] bytes) {
-            File.WriteAllBytes("Images/" + DateTime.Now.ToString() + ".jpg", bytes);
+            File.WriteAllBytes("Images/" + DateTime.Now + ".jpg", bytes);
         }
 
         static void CreateSensorTables(int sensorCount) {
             using (sql) {
-                sql.Open();
+                ConnectToDb();
                 var command = sql.CreateCommand();
 
                 for (int i = 0; i < sensorCount; ++i) {
@@ -72,32 +80,85 @@ namespace MainServer {
             }
         }
 
-        public static byte[] GetSensorData(byte[] sensorIds) {
+        public enum DataPeriod : byte {LastMinute, LastHour, LastDay, LastWeek, AllData}
+        
+        public static DataPeriod GetDataPeriod(string str) =>
+            str switch {
+                "timmen" => DataPeriod.LastHour,
+                "dygnet" => DataPeriod.LastDay,
+                "veckan" => DataPeriod.LastWeek,
+                "all" => DataPeriod.AllData,
+                _ => DataPeriod.LastMinute
+            };
+        
+        public static byte[] GetSensorData(byte[] sensorIds, DataPeriod dataMode) {
             using (sql) {
-                sql.Open();
-                var command = sql.CreateCommand();
+                ConnectToDb();
 
                 Dictionary<byte, Dictionary<byte, List<float>>> values = new Dictionary<byte, Dictionary<byte, List<float>>>();
-                int startTime = 0;
+                int firstTimestamp = 0;
                 for (byte i = 0; i < sensorIds.Length; ++i) {
-                    command.CommandText = $"SELECT * FROM S{sensorIds[i]}";// WHERE Timestamp >= $startTime AND Timestamp <= $endTime AND Timestamp % 2 = 0";
-                    values.Add(sensorIds[i], new Dictionary<byte, List<float>>());
-                    int time = 0;
-                    using (var reader = command.ExecuteReader()) {
-                        while (reader.Read()) {
-                            int t = reader.GetInt32(0);
-                            if (time == 0) { time = t - 1; startTime = t; }
-                            byte sensorType = reader.GetByte(1);
-                            while (t != ++time) {
-                                values[sensorIds[i]].GetValueCreateNew(sensorType).Add(0);
-                            }
-                            values[sensorIds[i]].GetValueCreateNew(sensorType).Add(reader.GetFloat(2));
+                    try {
+                        int skipEvery = 1;
+                        var command = sql.CreateCommand();
+                        command.CommandText = $"SELECT * FROM S{sensorIds[i]}";
+                        switch (dataMode) {
+                            case DataPeriod.LastMinute:
+                                command.CommandText += " WHERE Timestamp >= $startTime";
+                                firstTimestamp = (int) ((DateTimeOffset) (DateTime.Now - TimeSpan.FromMinutes(1))).ToUnixTimeSeconds();
+                                break;
+                            case DataPeriod.LastHour:
+                                skipEvery = 60;
+                                firstTimestamp = (int) ((DateTimeOffset) (DateTime.Now - TimeSpan.FromHours(1)).Round(TimeSpan.FromMinutes(1))).ToUnixTimeSeconds();
+                                break;
+                            case DataPeriod.LastDay:
+                                skipEvery = 300;
+                                firstTimestamp = (int) ((DateTimeOffset) (DateTime.Now - TimeSpan.FromDays(1)).Round(TimeSpan.FromMinutes(5))).ToUnixTimeSeconds();
+                                break;
+                            case DataPeriod.LastWeek:
+                                skipEvery = 1800;
+                                firstTimestamp = (int) ((DateTimeOffset) (DateTime.Now - TimeSpan.FromDays(7)).Round(TimeSpan.FromMinutes(30))).ToUnixTimeSeconds();
+                                break;
+                            case DataPeriod.AllData:
+                                command.CommandText += " WHERE Timestamp % 3600 = 0";
+                                skipEvery = 3600;
+                                break;
                         }
+                        switch (dataMode) {
+                            case DataPeriod.LastHour:
+                            case DataPeriod.LastDay:
+                            case DataPeriod.LastWeek:
+                                command.CommandText +=
+                                    $" WHERE Timestamp >= $startTime AND Timestamp % {skipEvery} = 0";
+                                break;
+                        }
+
+                        if (firstTimestamp != 0) command.Parameters.AddWithValue("$startTime", firstTimestamp);
+
+                        values.Add(sensorIds[i], new Dictionary<byte, List<float>>());
+                        int time = firstTimestamp;
+                        using (var reader = command.ExecuteReader()) {
+                            while (reader.Read()) {
+                                int t = reader.GetInt32(0);
+                                if (time == 0) {
+                                    time = t - 1;
+                                    firstTimestamp = t;
+                                }
+                                byte sensorType = reader.GetByte(1);
+                                time += skipEvery;
+                                for (; time < t; time += skipEvery) {
+                                    values[sensorIds[i]].GetValueCreateNew(sensorType).Add(0);
+                                }
+                                values[sensorIds[i]].GetValueCreateNew(sensorType).Add(reader.GetFloat(2));
+                            }
+                        }
+                    } catch (Exception e) {
+                        Console.WriteLine(e);
                     }
                 }
 
                 Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
-                StringBuilder strb = new StringBuilder($"{startTime}|{{");
+                StringBuilder strb = new StringBuilder($"{firstTimestamp}|{{");
                 int j = 0;
                 foreach (var sensor in values) {
                     strb.Append($"\"{sensor.Key}\":{{");
@@ -111,8 +172,6 @@ namespace MainServer {
                 }
                 strb.Append('}');
                 return Encoding.UTF8.GetBytes(strb.ToString());
-                //return Encoding.UTF8.GetBytes(string.Join(',', values[0]));
-                //return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(values);
             }
         }
     }
