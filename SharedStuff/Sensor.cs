@@ -8,6 +8,7 @@ namespace SharedStuff
         public bool Online { get; protected set; }
 
         public byte SensorId { get; set; }
+        public string SensorName { get; set; }
 
         public void UpdateValues()
         {
@@ -57,5 +58,12 @@ namespace SharedStuff
         protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2));
 
         protected float ReadFloat() => BitConverter.ToSingle(ReadBytes(4));
+
+        protected void ValidateValue(float value, float min, float max) {
+            if (!(value >= min && value <= max)) {
+                Console.WriteLine($"Invalid value {value}. Min:{min} Max:{max}");
+                throw new Exception();
+            }
+        } 
     }
 }

@@ -17,6 +17,7 @@ namespace SharedStuff {
 
         protected override void InternalUpdateValues() {
             FlowRate = ReadInt16();
+            ValidateValue(FlowRate, 0, 100);
         }
 
         public override SensorValue[] GetSensorValues() {
@@ -31,6 +32,7 @@ namespace SharedStuff {
 
         protected override void InternalUpdateValues() {
             Moisture = ReadInt16().Map(0, 1000, 0, 1);
+            ValidateValue(Moisture, 0, 1);
         }
         public override SensorValue[] GetSensorValues() {
             return new[] { new SensorValue(this, SensorValueType.Moisture, Moisture) };
@@ -44,6 +46,7 @@ namespace SharedStuff {
 
         protected override void InternalUpdateValues() {
             Light = ReadInt16();
+            ValidateValue(Light, 0, 1000);
         }
 
         public override SensorValue[] GetSensorValues() {
@@ -58,6 +61,7 @@ namespace SharedStuff {
 
         protected override void InternalUpdateValues() {
             pH = ReadFloat();
+            ValidateValue(pH, 1, 14);
         }
 
         public override SensorValue[] GetSensorValues() {
@@ -72,6 +76,7 @@ namespace SharedStuff {
 
         protected override void InternalUpdateValues() {
             Temperature = ReadFloat();
+            ValidateValue(Temperature, 0, 100);
         }
 
         public override SensorValue[] GetSensorValues() {
@@ -116,6 +121,8 @@ namespace SharedStuff {
             var ccsData = Ccs811Bme280.ReadCO2TVOC();
             CO2 = ccsData[0];
             TVOC = ccsData[1];
+            ValidateValue(CO2, 400, 8192);
+            ValidateValue(TVOC, 0, 1187);
         }
 
         public override SensorValue[] GetSensorValues() {
