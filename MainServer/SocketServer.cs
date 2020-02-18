@@ -9,6 +9,8 @@ using SharedStuff;
 namespace MainServer {
     class SocketServer {
 
+        private const int packetSize = 65535;
+
         public static void RunServer() {
 
             IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
@@ -32,27 +34,35 @@ namespace MainServer {
                 Console.WriteLine("Waiting for connection ... ");
                 Socket clientSocket = listener.Accept();
 
+                int currentMessagePackageCount = 0, currentMessagePackagesSent = 0, currentMessageLength = 0;
+                byte[] message = new byte[packetSize];
                 while (true) {
-                    byte[] bytes = new byte[65535];
+                    byte[] packet = new byte[packetSize];
 
-                    int length = clientSocket.Receive(bytes);
-                    MessageType messageType = (MessageType)bytes[0];
+                    int length = clientSocket.Receive(packet);
+                    MessageType messageType = (MessageType)packet[0];
 
-                    Console.WriteLine("length: " + length + " type: " + (int)messageType);
+                    if(currentMessagePackagesSent >= currentMessagePackageCount) {
+                        currentMessagePackageCount = packet[1];
+                        currentMessagePackagesSent = 0;
+                        currentMessageLength = 0;
 
-                    Span<byte> bytesSpan = bytes.AsSpan<byte>(1, length - 1);
+                        message = new byte[currentMessagePackageCount * (packetSize - 2)];
+                    }
+
+                    Console.WriteLine("length: " + length + " type: " + (int)messageType + " || " + currentMessagePackageCount + " : " + currentMessagePackagesSent + " : " + currentMessageLength);
+
+                    Buffer.BlockCopy(packet, 2, message, currentMessageLength, length - 2);
 
                     Console.WriteLine("Message recieved epicly");
 
-                    //Console.WriteLine("Text received -> {0} ", data);
-                    //byte[] message = Encoding.ASCII.GetBytes("Test Server");
+                    currentMessagePackagesSent++;
+                    currentMessageLength += length - 2;
 
-                    //clientSocket.Send(message);
-
-                    //clientSocket.Shutdown(SocketShutdown.Both);
-                    //clientSocket.Close();
-
-                    HandleMessage(messageType, bytesSpan.ToArray());
+                    if (currentMessagePackagesSent >= currentMessagePackageCount) {
+                        Span<byte> messageSpan = message.AsSpan<byte>(0, currentMessageLength);
+                        HandleMessage(messageType, messageSpan.ToArray());
+                    }
                 }
             }
 
