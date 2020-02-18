@@ -39,18 +39,25 @@ namespace RaspberryPi {
             sender.Close();
         }
 
-        //public void SendMessage(string message) => SendMessage(Encoding.ASCII.GetBytes(message), MessageType.String);
+        byte[] buffer = new byte[65535];
+        public bool SendMessage(byte[] message, MessageType messageType)
+        {
+            buffer[0] = (byte) messageType;
+            buffer[1] = (byte) ((message.Length - 1) / 65533 + 1);
 
-        public bool SendMessage(byte[] message, MessageType messageType) {
-
-            byte[] messageSent = new byte[message.Length + 1];
-            Buffer.BlockCopy(new[] { (byte)messageType }, 0, messageSent, 0, 1);
-            Buffer.BlockCopy(message, 0, messageSent, 1, message.Length);
-
-            try {
-                sender.Send(messageSent);
-            } catch (SocketException e) {
-                return false;
+            for (int i = 0, pos = 0; i < buffer[1]; ++i, pos += 65533)
+            {
+                int bytesLeft = message.Length - pos;
+                Buffer.BlockCopy(message, pos, buffer, 2, bytesLeft <= 65533 ? bytesLeft : 65533);
+                try
+                {
+                    if (i != buffer[1] - 1)
+                        sender.Send(buffer);
+                    else
+                        sender.Send(buffer.AsSpan(0, bytesLeft));
+                } catch (SocketException e) {
+                    return false;
+                }
             }
 
             return true;
