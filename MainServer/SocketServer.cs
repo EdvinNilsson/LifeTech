@@ -2,14 +2,10 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.IO;
 using SharedStuff;
 
 namespace MainServer {
     class SocketServer {
-
-        private const int packetSize = 65535;
 
         public static void RunServer() {
 
@@ -26,71 +22,69 @@ namespace MainServer {
 
             Socket listener = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-            try {
+            while (true) {
+
                 listener.Bind(localEndPoint);
-                
+            
                 listener.Listen(1);
     
                 Console.WriteLine("Waiting for connection ... ");
                 Socket clientSocket = listener.Accept();
 
-                int currentMessagePackageCount = 0, currentMessagePackagesSent = 0, currentMessageLength = 0;
-                byte[] message = new byte[packetSize];
+                byte[] message = new byte[0];
+
+                MessageType messageType = 0;
+                int packetLength = 0, bytesRead = 0;
+
                 while (true) {
-                    byte[] packet = new byte[packetSize];
+                    try {
+                        byte[] packet = new byte[clientSocket.ReceiveBufferSize];
 
-                    int length = clientSocket.Receive(packet);
-                    MessageType messageType = (MessageType)packet[0];
+                        int length = clientSocket.Receive(packet);
 
-                    if(currentMessagePackagesSent >= currentMessagePackageCount) {
-                        currentMessagePackageCount = packet[1];
-                        currentMessagePackagesSent = 0;
-                        currentMessageLength = 0;
+                        int offset = 0;
+                        if (bytesRead == packetLength) {
+                            packetLength = packet[0] + (packet[1] << 8) + (packet[2] << 16);
+                            bytesRead = 0;
+                            messageType = (MessageType)packet[3];
+                            message = new byte[packetLength];
+                            offset = 4;
+                        }
 
-                        message = new byte[currentMessagePackageCount * (packetSize - 2)];
-                    }
+                        int read = MyMath.Min(packetLength - bytesRead, length - offset);
+                        if (read > 0) {
+                            Buffer.BlockCopy(packet, offset, message, bytesRead, read);
+                            bytesRead += read;
+                        }
 
-                    Console.WriteLine("length: " + length + " type: " + (int)messageType + " || " + currentMessagePackageCount + " : " + currentMessagePackagesSent + " : " + currentMessageLength);
-
-                    Buffer.BlockCopy(packet, 2, message, currentMessageLength, length - 2);
-
-                    Console.WriteLine("Message recieved epicly");
-
-                    currentMessagePackagesSent++;
-                    currentMessageLength += length - 2;
-
-                    if (currentMessagePackagesSent >= currentMessagePackageCount) {
-                        Span<byte> messageSpan = message.AsSpan<byte>(0, currentMessageLength);
-                        HandleMessage(messageType, messageSpan.ToArray());
+                        if (bytesRead == packetLength) {
+                            Console.WriteLine($"Message received epicly, length: {packetLength} type: {messageType}");
+                            HandleMessage(messageType, message);
+                        }
+                    } catch (Exception e) {
+                        Console.WriteLine(e);
+                        clientSocket.Dispose();
+                        listener.Listen(1);
+                        Console.WriteLine("Waiting for connection ... ");
+                        clientSocket = listener.Accept();
                     }
                 }
-            }
-
-            catch (Exception e) {
-                Console.WriteLine(e.ToString());
             }
         }
 
         public delegate void MessageDelegate(byte[] message);
-        static readonly Dictionary<MessageType, List<MessageDelegate>> MessageHandlers = new Dictionary<MessageType, List<MessageDelegate>>();
+        static Dictionary<MessageType, MessageDelegate> messageHandlers = new Dictionary<MessageType, MessageDelegate>();
 
         static void HandleMessage(MessageType messageType, byte[] message) {
             try {
-                foreach (var messageHandler in MessageHandlers[messageType]) {
-                    messageHandler(message);
-                }
+                messageHandlers[messageType](message);
             } catch (KeyNotFoundException) {
                 Console.WriteLine($"No handler for message type {(byte)messageType}.");
+            } catch (Exception e) {
+                Console.WriteLine(e);
             }
         }
 
-        public static void RegisterHandler(MessageType messageType, MessageDelegate messageDelegate) {
-            try {
-                MessageHandlers[messageType].Add(messageDelegate);
-            } catch (KeyNotFoundException) {
-                MessageHandlers.Add(messageType, new List<MessageDelegate>());
-                MessageHandlers[messageType].Add(messageDelegate);
-            }
-        }
+        public static void RegisterHandler(MessageType messageType, MessageDelegate messageDelegate) => messageHandlers[messageType] = messageDelegate;
     }
 }
