@@ -20,9 +20,9 @@ namespace MainServer {
                 return string.Format(File.ReadAllText("Views/realtime.html", Encoding.UTF8), classes);
             }, "Realtidsdata");
 
-            Get("/om", context => {
-                return File.ReadAllText("Views/about.html", Encoding.UTF8);
-            }, "Om NTI Life Tech");
+            Get("/media", context => {
+                return File.ReadAllText("Views/media.html", Encoding.UTF8);
+            }, "Media");
 
             Get("/realtid/get-sensordata", context => {
                 byte[] sensorIds = Array.ConvertAll(context.Request.QueryString["sensors"].Split(','), c => byte.Parse(c));
