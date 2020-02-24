@@ -14,31 +14,42 @@ var sensorUnits;
 
 var run;
 
+function distinct(value, index, self) {
+    return self.indexOf(value) === index;
+}
+
 function updateGraph() {
-    var sensors = myChart.data.datasets.filter(c => !c.hidden).map(c => c.sensorId);
+    var sensors = myChart.data.datasets.filter(c => !c.hidden).map(c => c.sensorId).filter(distinct);
     if (sensors.length === 0) { setTimeout(() => updateGraph(), 1000); return; }
     httpGet('/realtid/get-latest-sensor-value?sensors=' + sensors.join(','), function (response, statusCode) {
         myChart.data.labels.push(new Date().toLocaleString());
-        myChart.data.datasets.forEach(c => {if (c.data.length > 60) { c.data.shift(); }});
+        var shift = myChart.data.labels.length > 60;
+        myChart.data.datasets.forEach(value => {
+            if (shift) value.data.shift();
+            value.data.push(NaN);
+        });
+
         if (statusCode === 200) {
             response.split(' ').forEach(value => {
                 value = value.split(',');
-                var arr = myChart.data.datasets.filter(c => c.sensorId === value[0])[0].data;
-                arr.push(parseFloat(value[2]));
+                try {
+                    var arr = myChart.data.datasets.find(c => c.sensorId === value[0] && c.sensorType === value[1]).data;
+                    arr[arr.length - 1] = parseFloat(value[2]);
+                } catch (e) {}
             });
         }
-        myChart.data.labels.shift();
+        if (shift) myChart.data.labels.shift();
         
         myChart.update({
             duration: 300,
             easing: 'easeInOutSine'
         });
-        if (typeof run === "function") { run(); run = null; }
+        if (typeof run === 'function') { run(); run = null; }
 
         if (statusCode === 200 || statusCode === 408)
             updateGraph();
         else
-            setTimeout(() => { updateGraph(); console.log("Hej"); }, 1000);
+            setTimeout(() => { updateGraph(); }, 1000);
     });
 }
 
