@@ -42,6 +42,8 @@ namespace MainServer {
 
                         int length = clientSocket.Receive(packet);
 
+                        if (length == 0) continue;
+
                         int offset = 0;
                         if (bytesRead == packetLength) {
                             packetLength = packet[0] + (packet[1] << 8) + (packet[2] << 16);
