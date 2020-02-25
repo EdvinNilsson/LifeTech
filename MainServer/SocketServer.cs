@@ -9,18 +9,10 @@ namespace MainServer {
 
         public static void RunServer() {
 
-            IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
-            IPAddress ipAddr = ipHost.AddressList[0];
-            foreach (IPAddress ip in ipHost.AddressList) {
-                if (ip.AddressFamily == AddressFamily.InterNetwork) {
-                    ipAddr = ip;
-                }
-            }
-
-            IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
+            IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse("0.0.0.0"), 11111);
             Console.WriteLine($"Listening on {localEndPoint}");
 
-            Socket listener = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             while (true) {
 
