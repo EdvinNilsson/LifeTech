@@ -24,6 +24,20 @@ namespace MainServer {
                 return File.ReadAllText("Views/media.html", Encoding.UTF8);
             }, "Media");
 
+            Get("/kamera", context => {
+                return string.Format(File.ReadAllText("Views/camera.html", Encoding.UTF8),
+                    DatabaseHandler.GetLatestImageInfo().CreationTime.ToShortTimeString());
+            }, "Kamera");
+
+            Get("/kamera/get-latest-image", context => {
+                byte[] buffer = File.ReadAllBytes(DatabaseHandler.GetLatestImageInfo().FullName);
+                context.Response.ContentLength64 = buffer.Length;
+                context.Response.ContentType = "image/jpeg";
+                Stream output = context.Response.OutputStream;
+                output.Write(buffer, 0, buffer.Length);
+                output.Close();
+            });
+
             Get("/realtid/get-sensordata", context => {
                 byte[] sensorIds = Array.ConvertAll(context.Request.QueryString["sensors"].Split(','), c => byte.Parse(c));
                 var dataMode = DatabaseHandler.GetDataPeriod(context.Request.QueryString["senaste"]);
