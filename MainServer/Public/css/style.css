@@ -79,7 +79,7 @@ article {
 
 article .article {
 	display: flex;
-	box-shadow: rgba(0, 0, 0, 0.2) 2px 5px 5px;
+	box-shadow: rgba(0, 0, 0, 0.2) 2px 5px 5px, rgba(0, 0, 0, 0.1) -2px -2px 5px;
 	position: relative;
 	margin: 1rem 0;
 	text-decoration: none;
@@ -105,15 +105,25 @@ article .article section {
 	flex: 1;
 }
 
+article img.camera {
+	margin-top: 1rem;
+	width: 100%;
+}
+
 .img-0 {
 	background: url(https://www.gp.se/image/policy:1.24215045:1582188647/ZaVkgRrbZH620qaK5q1F-Z-A93U-jpg.jpg?f=Wide&w=1920&$p$f$w=57a4d2b);
 }
 
 .img-1 {
-	background: url(https://it-hallbarhet.se/wp-content/uploads/2019/10/Elever_NTI_Lifetech-1024x768.jpg);
+	background: url(https://via.tt.se/data/images/00024/34a36b25-c8d4-4400-8f38-5b58dc918d65-w_720.jpg);
+	background-position: 0% 40% !important;
 }
 
 .img-2 {
+	background: url(https://it-hallbarhet.se/wp-content/uploads/2019/10/Elever_NTI_Lifetech-1024x768.jpg);
+}
+
+.img-3 {
 	background: url(https://www.ntigymnasiet.se/wp-content/uploads/2019/08/Henrik_johann.jpg);
 	background-position: top !important;
 }

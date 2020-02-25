@@ -7,6 +7,7 @@ using System.Threading;
 using SharedStuff;
 using Microsoft.Data.Sqlite;
 using System.IO;
+using System.Linq;
 
 namespace MainServer {
     static class DatabaseHandler {
@@ -19,6 +20,7 @@ namespace MainServer {
             SocketServer.RegisterHandler(MessageType.Image, ImageHandler);
             
             sql = new SqliteConnection("Data Source=Db/sensorData.db");
+            Directory.CreateDirectory("/Images");
 
             SensorList.Initialize();
             CreateSensorTables(SensorList.sensors.Length);
@@ -66,7 +68,12 @@ namespace MainServer {
         }
 
         public static void ImageHandler(byte[] bytes) {
-            File.WriteAllBytes("Images/" + DateTime.Now + ".jpg", bytes);
+            File.WriteAllBytes("Images/" + DateTime.Now.ToString("MM-dd-yyyy-HH.mm.ss") + ".jpg", bytes);
+        }
+
+        public static FileInfo GetLatestImageInfo() {
+            var dir = new DirectoryInfo("Images");
+            return dir.GetFiles().OrderByDescending(c => c.CreationTime).First();
         }
 
         static void CreateSensorTables(int sensorCount) {

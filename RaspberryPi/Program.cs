@@ -9,15 +9,18 @@ namespace RaspberryPi
 {
     class Program
     {
+        static SocketClient socketClient;
         static void Main(string[] args)
         {
-            SocketClient socketClient = new SocketClient("192.168.192.116");
+            socketClient = new SocketClient("127.0.0.1");
             Console.WriteLine("Hello");
             socketClient.Connect();
             Console.WriteLine("Yes");
 
             SensorList.Initialize();
-            SendPhoto(socketClient);
+
+            Thread photoThread = new Thread(PhotoLoop);
+            photoThread.Start();
 
             //using (var lcd = new Lcd1602(18, 5, new[] {6, 16, 20, 21}))
             //{
@@ -52,7 +55,17 @@ namespace RaspberryPi
             socketClient.SendMessage(sensorData.Serialize(), MessageType.SensorData);
         }
 
-        static void SendPhoto(SocketClient socketClient) {
+        static void PhotoLoop() {
+            var interval = TimeSpan.FromMinutes(15);
+            while (true) {
+                SendPhoto();
+                var nextPhotoTime = MyMath.Round(DateTime.Now, interval);
+                if (nextPhotoTime < DateTime.Now) nextPhotoTime += interval;
+                Thread.Sleep(nextPhotoTime - DateTime.Now);
+            }
+        }
+
+        static void SendPhoto() {
             try {
                 Bash("raspistill -o cam.jpg");
                 socketClient.SendMessage(File.ReadAllBytes("cam.jpg"), MessageType.Image); }
