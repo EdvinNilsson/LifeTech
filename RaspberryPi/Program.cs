@@ -18,14 +18,10 @@ namespace RaspberryPi
             Console.WriteLine("Yes");
 
             SensorList.Initialize();
+            Sak.InitalizeSaker();
 
             Thread photoThread = new Thread(PhotoLoop);
             photoThread.Start();
-
-            //using (var lcd = new Lcd1602(18, 5, new[] {6, 16, 20, 21}))
-            //{
-            //    lcd.Write("Hello World!");
-            //}
 
             while (true) {
                 DateTime now = DateTime.Now;
