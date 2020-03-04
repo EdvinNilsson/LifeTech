@@ -17,9 +17,9 @@ namespace MainServer {
             while (true) {
 
                 listener.Bind(localEndPoint);
-            
+
                 listener.Listen(1);
-    
+
                 Console.WriteLine("Waiting for connection ... ");
                 Socket clientSocket = listener.Accept();
 
@@ -27,6 +27,8 @@ namespace MainServer {
 
                 MessageType messageType = 0;
                 int packetLength = 0, bytesRead = 0;
+
+                byte[] header = new byte[4];
 
                 while (true) {
                     try {
@@ -37,24 +39,42 @@ namespace MainServer {
                         if (length == 0) continue;
 
                         int offset = 0;
-                        if (bytesRead == packetLength) {
-                            packetLength = packet[0] + (packet[1] << 8) + (packet[2] << 16);
-                            bytesRead = 0;
-                            messageType = (MessageType)packet[3];
-                            message = new byte[packetLength];
-                            offset = 4;
+                        while (true) {
+                            if (bytesRead == packetLength) {
+                                if (length - offset < 4) {
+                                    Buffer.BlockCopy(packet, offset, header, 0, length - offset);
+                                    clientSocket.Receive(header, length - offset, 4 - (length - offset), SocketFlags.None);
+                                } else {
+                                    Buffer.BlockCopy(packet, offset, header, 0, 4);
+                                }
+                                packetLength = header[0] + (header[1] << 8) + (header[2] << 16);
+                                bytesRead = 0;
+                                messageType = (MessageType)header[3];
+                                message = new byte[packetLength];
+                                offset += 4;
+                                Console.WriteLine($"New message: packetLength: {packetLength} messageType: {messageType} offset: {offset}");
+                                if ((byte)messageType > 2) throw new Exception();
+                            }
+
+                            int read = MyMath.Min(packetLength - bytesRead, length - offset);
+ 
+                            if (read > 0) {
+                                Buffer.BlockCopy(packet, offset, message, bytesRead, read);
+                                bytesRead += read;
+                            }
+
+                            if (bytesRead == packetLength) {
+                                Console.WriteLine($"Message received epicly, length: {packetLength} type: {messageType}");
+                                HandleMessage(messageType, message);
+                            }
+
+                            if (length > read + offset) {
+                                offset += read;
+                            } else {
+                                break;
+                            }
                         }
 
-                        int read = MyMath.Min(packetLength - bytesRead, length - offset);
-                        if (read > 0) {
-                            Buffer.BlockCopy(packet, offset, message, bytesRead, read);
-                            bytesRead += read;
-                        }
-
-                        if (bytesRead == packetLength) {
-                            Console.WriteLine($"Message received epicly, length: {packetLength} type: {messageType}");
-                            HandleMessage(messageType, message);
-                        }
                     } catch (Exception e) {
                         Console.WriteLine(e);
                         clientSocket.Dispose();
@@ -72,8 +92,9 @@ namespace MainServer {
         static void HandleMessage(MessageType messageType, byte[] message) {
             try {
                 messageHandlers[messageType](message);
-            } catch (KeyNotFoundException) {
-                Console.WriteLine($"No handler for message type {(byte)messageType}.");
+            } catch (KeyNotFoundException e) {
+                Console.WriteLine($"No handler for message type {(byte)messageType}. Resetting socket...");
+                throw e;
             } catch (Exception e) {
                 Console.WriteLine(e);
             }
