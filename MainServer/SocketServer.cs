@@ -52,8 +52,6 @@ namespace MainServer {
                                 messageType = (MessageType)header[3];
                                 message = new byte[packetLength];
                                 offset += 4;
-                                Console.WriteLine($"New message: packetLength: {packetLength} messageType: {messageType} offset: {offset}");
-                                if ((byte)messageType > 2) throw new Exception();
                             }
 
                             int read = MyMath.Min(packetLength - bytesRead, length - offset);

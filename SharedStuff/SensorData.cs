@@ -13,7 +13,7 @@ namespace SharedStuff
             Timestamp = reader.ReadInt32();
             Sensors = new SensorValue[(bytes.Length - 4) / 6];
             for (int i = 0; i < Sensors.Length; i++) {
-                Sensors[i] = new SensorValue(reader.ReadByte(), (SensorValueType)reader.ReadByte(),  reader.ReadSingle());
+                Sensors[i] = new SensorValue(reader.ReadByte(), (SensorList.SensorValueType)reader.ReadByte(),  reader.ReadSingle());
             }
         }
 
@@ -27,7 +27,7 @@ namespace SharedStuff
             Sensors = tempList.ToArray();
         }
 
-        DateTime UnixTimeToDateTime(int unixTime) {
+        public static DateTime UnixTimeToDateTime(int unixTime) {
             DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
             dtDateTime = dtDateTime.AddSeconds(unixTime).ToLocalTime();
             return dtDateTime;
@@ -58,13 +58,13 @@ namespace SharedStuff
     }
     public class SensorValue
     {
-        public SensorValue(byte id, SensorValueType type, float value) {
+        public SensorValue(byte id, SensorList.SensorValueType type, float value) {
             this.id = id;
             this.type = type;
             this.value = value;
         }
 
-        public SensorValue(Sensor sensor, SensorValueType type, float value)
+        public SensorValue(Sensor sensor, SensorList.SensorValueType type, float value)
         {
             id = sensor.SensorId;
             this.type = type;
@@ -72,7 +72,7 @@ namespace SharedStuff
         }
 
         public byte id;
-        public SensorValueType type;
+        public SensorList.SensorValueType type;
         public float value;
     }
 }

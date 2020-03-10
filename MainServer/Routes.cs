@@ -10,8 +10,22 @@ using static MainServer.WebServer;
 namespace MainServer {
     static class Routes {
         public static void Initialize() {
-            Get("/", context => {
-                return "<article><p>Startsida</p></article>";
+            Get("/", context => "<article><p>Startsida</p></article>");
+
+            Get("/media", context => File.ReadAllText("Views/media.html", Encoding.UTF8), "Media");
+
+            Get("/kamera", context => string.Format(File.ReadAllText("Views/camera.html", Encoding.UTF8),
+                DatabaseHandler.GetLatestImageInfo(1).CreationTime.ToShortTimeString(),
+                DatabaseHandler.GetLatestImageInfo(2).CreationTime.ToShortTimeString()), "Kamera");
+
+            Get("/kamera/get-latest-image", context => {
+                byte imageId = byte.Parse(context.Request.QueryString["image"]);
+                byte[] buffer = File.ReadAllBytes(DatabaseHandler.GetLatestImageInfo(imageId).FullName);
+                context.Response.ContentLength64 = buffer.Length;
+                context.Response.ContentType = "image/jpeg";
+                Stream output = context.Response.OutputStream;
+                output.Write(buffer, 0, buffer.Length);
+                output.Close();
             });
 
             Get("/realtid", context => {
@@ -20,28 +34,10 @@ namespace MainServer {
                 return string.Format(File.ReadAllText("Views/realtime.html", Encoding.UTF8), classes);
             }, "Realtidsdata");
 
-            Get("/media", context => {
-                return File.ReadAllText("Views/media.html", Encoding.UTF8);
-            }, "Media");
-
-            Get("/kamera", context => {
-                return string.Format(File.ReadAllText("Views/camera.html", Encoding.UTF8),
-                    DatabaseHandler.GetLatestImageInfo().CreationTime.ToShortTimeString());
-            }, "Kamera");
-
-            Get("/kamera/get-latest-image", context => {
-                byte[] buffer = File.ReadAllBytes(DatabaseHandler.GetLatestImageInfo().FullName);
-                context.Response.ContentLength64 = buffer.Length;
-                context.Response.ContentType = "image/jpeg";
-                Stream output = context.Response.OutputStream;
-                output.Write(buffer, 0, buffer.Length);
-                output.Close();
-            });
-
             Get("/realtid/get-sensordata", context => {
-                byte[] sensorIds = Array.ConvertAll(context.Request.QueryString["sensors"].Split(','), c => byte.Parse(c));
-                var dataMode = DatabaseHandler.GetDataPeriod(context.Request.QueryString["senaste"]);
-                byte[] buffer = DatabaseHandler.GetSensorData(sensorIds, dataMode);
+                byte[] sensorIds = Array.ConvertAll(context.Request.QueryString["sensors"].Split(','), byte.Parse);
+                var dataPeriod = DatabaseHandler.GetDataPeriod(context.Request.QueryString["senaste"]);
+                byte[] buffer = DatabaseHandler.GetSensorData(sensorIds, dataPeriod);
                 context.Response.ContentLength64 = buffer.Length;
                 context.Response.ContentType = "text/plain";
                 Stream output = context.Response.OutputStream;
@@ -50,13 +46,14 @@ namespace MainServer {
             });
 
             Get("/realtid/get-latest-sensor-value", context => {
-                byte[] sensorIds = Array.ConvertAll(context.Request.QueryString["sensors"].Split(','), c => byte.Parse(c));
+                byte[] sensorIds = Array.ConvertAll(context.Request.QueryString["sensors"].Split(','), byte.Parse);
                 bool done = false;
                 context.Response.ContentType = "text/plain";
                 void SendSensorData(SensorData sensorData) {
                     try {
                         Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
-                        byte[] buffer = Encoding.UTF8.GetBytes(string.Join(' ', sensorData.Sensors.Where(c => sensorIds.Contains(c.id))
+                        byte[] buffer = Encoding.UTF8.GetBytes(string.Join(' ', 
+                            sensorData.Sensors.Where(c => sensorIds.Contains(c.id))
                             .Select(c => $"{c.id},{(byte) c.type},{c.value}")));
                         context.Response.ContentLength64 = buffer.Length;
                         Stream output = context.Response.OutputStream;
@@ -74,7 +71,8 @@ namespace MainServer {
 
             Get("/realtid/get-sensor-names-units", context => {
                 byte[] buffer = Encoding.UTF8.GetBytes(string.Join('|', 
-                    SensorList.sensors.Select(c => $"{c.SensorId},{c.SensorName}")) + '#' + string.Join(',', SensorList.Units));
+                    SensorList.Sensors.Select(c => $"{c.SensorId},{c.SensorName}")) + '#' +
+                    string.Join(',', SensorList.Units) + '#' + string.Join(',', SensorList.Readings));
                 context.Response.ContentLength64 = buffer.Length;
                 context.Response.ContentType = "text/plain";
                 Stream output = context.Response.OutputStream;

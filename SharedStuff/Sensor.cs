@@ -55,7 +55,7 @@ namespace SharedStuff
             return dataArray;
         }
 
-        protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2));
+        protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2), 0);
 
         protected float ReadFloat() => BitConverter.ToSingle(ReadBytes(4));
 

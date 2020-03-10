@@ -26,7 +26,7 @@ namespace RaspberryPi {
             List<T> sensorList = new List<T>();
 
             foreach (var sName in sensorNames) {
-                foreach (var sensor in SensorList.sensors) {
+                foreach (var sensor in SensorList.Sensors) {
                     if (sensor.SensorName == sName) {
                         sensorList.Add((T)sensor);
                     }

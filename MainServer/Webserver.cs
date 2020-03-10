@@ -27,7 +27,7 @@ namespace MainServer {
                     output.Close();
                 };
             }
-            listener.Prefixes.Add(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "http://localhost:8080/" : "http://*:8080/");
+            listener.Prefixes.Add(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "http://localhost:8080/" : "http://*:5678/");
             listener.Start();
             listener.BeginGetContext(OnConnection, null);
         }
@@ -39,7 +39,7 @@ namespace MainServer {
 
         static void ProcessRequest(IAsyncResult result) {
             HttpListenerContext context = listener.EndGetContext(result);
-            Console.WriteLine($"{DateTime.Now.ToLongTimeString()} {context.Request.RemoteEndPoint} {context.Request.Url.AbsolutePath}");
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()} {context.Request.Headers["CF-Connecting-IP"]} {context.Request.Url.AbsolutePath}");
             try {
                 context.Response.Headers.Set(HttpResponseHeader.Server, string.Empty);
                 switch (context.Request.HttpMethod) {
@@ -132,9 +132,9 @@ namespace MainServer {
         public static void Post(string path, Action<HttpListenerContext, string[]> action) => posts[ToRegex(path)] = action;
 
         public static string GenerateHTML(string content, string title = null) {
-            StringBuilder sb = new StringBuilder(File.ReadAllText("Views/index.html"));
-            return string.Format(sb.Replace("\n", string.Empty).Replace("\t", string.Empty).ToString(),
-                title == null ? "NTI Life Tech" : $"{title} - NTI Life Tech", content);
+            StringBuilder sb = new StringBuilder();
+            return sb.AppendFormat(File.ReadAllText("Views/index.html"), title == null ? "NTI Life Tech" : $"{title} - NTI Life Tech", content)
+                .Replace("\n", string.Empty).Replace("\t", string.Empty).ToString();
         }
     }
 }

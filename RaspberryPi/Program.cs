@@ -18,19 +18,19 @@ namespace RaspberryPi
             Console.WriteLine("Yes");
 
             SensorList.Initialize();
-            Sak.InitalizeSaker();
+            try { Sak.InitalizeSaker(); } catch (Exception e) { Console.WriteLine(e); }
 
             Thread photoThread = new Thread(PhotoLoop);
             photoThread.Start();
 
             while (true) {
                 DateTime now = DateTime.Now;
-                foreach (var sensor in SensorList.sensors) {
+                foreach (var sensor in SensorList.Sensors) {
                     sensor.UpdateValues();
                 }
 
                 if (socketClient.sender.Connected) {
-                    SendSensorData(SensorList.sensors, socketClient, now);
+                    SendSensorData(SensorList.Sensors, socketClient, now);
                     Console.WriteLine("connected");
                 } else {
                     socketClient.Connect();
@@ -63,9 +63,11 @@ namespace RaspberryPi
 
         static void SendPhoto() {
             try {
-                Bash("raspistill -o cam.jpg");
-                socketClient.SendMessage(File.ReadAllBytes("cam.jpg"), MessageType.Image); }
-            catch (Exception e) {
+                Bash("raspistill -o cam.jpg -q 40 -w 1640 -h 1232 -n");
+                Bash("ssh pi@192.168.195.137 raspistill -o cam2.jpg -q 40 -w 1640 -h 1232 -n && scp pi@192.168.195.137:~/cam2.jpg .");
+                socketClient.SendMessage(File.ReadAllBytes("cam.jpg"), MessageType.Image1);
+                socketClient.SendMessage(File.ReadAllBytes("cam2.jpg"), MessageType.Image2);
+            } catch (Exception e) {
                 Console.WriteLine($"Kunde inte ta stillbild.\n{e}");
             }
         }

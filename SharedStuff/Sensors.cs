@@ -5,10 +5,10 @@ using Iot.Device.Bmxx80.PowerMode;
 using Iot.Units;
 using System.Device.I2c;
 using System.IO;
+using static SharedStuff.SensorList;
 
 
 namespace SharedStuff {
-    public enum SensorValueType : byte { FlowRate, Moisture, Light, Humidity, Pressure, Temperature, CO2, TVOC, CpuTemp, pH, Debug }
 
     public class FlowSensor : I2cSensor {
         public FlowSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
@@ -31,8 +31,8 @@ namespace SharedStuff {
         public float Moisture { get; private set; }
 
         protected override void InternalUpdateValues() {
-            Moisture = ReadInt16().Map(0, 1000, 0, 1);
-            ValidateValue(Moisture, 0, 1);
+            Moisture = ReadInt16();//100 - .Map(200, 700, 0, 100);
+            ValidateValue(Moisture, 0, 1000);
         }
         public override SensorValue[] GetSensorValues() {
             return new[] { new SensorValue(this, SensorValueType.Moisture, Moisture) };
@@ -108,14 +108,14 @@ namespace SharedStuff {
         public int TVOC { get; private set; }
 
         protected override void InternalUpdateValues() {
-            I2cBme280.SetHumiditySampling(Sampling.LowPower);
+            I2cBme280.SetHumiditySampling(Sampling.Standard);
             I2cBme280.SetPressureSampling(Sampling.Standard);
             I2cBme280.SetTemperatureSampling(Sampling.Standard);
 
             I2cBme280.SetPowerMode(Bmx280PowerMode.Forced);
 
             Humidity = I2cBme280.ReadHumidityAsync().Result;
-            Pressure = I2cBme280.ReadPressureAsync().Result;
+            Pressure = I2cBme280.ReadPressureAsync().Result / 1000;
             Temperature = I2cBme280.ReadTemperatureAsync().Result;
 
             var ccsData = Ccs811Bme280.ReadCO2TVOC();
@@ -137,28 +137,45 @@ namespace SharedStuff {
         }
     }
 
-    public class CPUInfo : Sensor {
-        public float CpuTemp { get; private set; }
-
-        protected override void InternalUpdateValues() {
-            CpuTemp = float.Parse(File.ReadAllText("/sys/class/thermal/thermal_zone0/temp")) / 1000f;
-        }
-
-        public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(this, SensorValueType.CpuTemp, CpuTemp) };
-        }
-    }
-
     public class DebugSensor : Sensor {
         public float Value { get; private set; }
 
         protected override void InternalUpdateValues() {
             Random rnd = new Random();
             Value = (float)rnd.NextDouble();
+            if (rnd.Next(10) == 5) throw new Exception();
         }
 
         public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(this, SensorValueType.Debug, Value) };
+            return new[] { new SensorValue(this, SensorValueType.pH, Value) };
+        }
+    }
+
+    public class EnvironmentalDebugSensor : Sensor {
+        public double Humidity { get; private set; }
+        public double Pressure { get; private set; }
+        public Temperature Temperature { get; private set; }
+        public int CO2 { get; private set; }
+        public int TVOC { get; private set; }
+
+        protected override void InternalUpdateValues() {
+            Random rnd = new Random();
+            Humidity = rnd.NextDouble();
+            Pressure = rnd.NextDouble();
+            Temperature = Temperature.FromCelsius(rnd.NextDouble());
+            CO2 = rnd.Next(100);
+            TVOC = rnd.Next(100);
+        }
+
+        public override SensorValue[] GetSensorValues() {
+            return new[]
+            {
+                new SensorValue(this, SensorValueType.Humidity, (float)Humidity),
+                new SensorValue(this, SensorValueType.Pressure, (float)Pressure),
+                new SensorValue(this, SensorValueType.Temperature, (float)Temperature.Celsius),
+                new SensorValue(this, SensorValueType.CO2, CO2),
+                new SensorValue(this, SensorValueType.TVOC, TVOC)
+            };
         }
     }
 }
