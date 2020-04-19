@@ -13,23 +13,26 @@ using MimeTypes;
 namespace MainServer {
     class WebServer {
         static HttpListener listener = new HttpListener();
+        static string publicPath;
 
         public static void StartServer() {
             Routes.Initialize();
-            string path = Path.GetFullPath("Public");
-            foreach (var file in Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories)) {
-                gets[file.Replace(path, "").Replace('\\', '/')] = delegate(HttpListenerContext context) {
-                    byte[] buffer = File.ReadAllBytes(file);
-                    context.Response.ContentLength64 = buffer.Length;
-                    context.Response.ContentType = MimeTypeMap.GetMimeType(Path.GetExtension(file));
-                    Stream output = context.Response.OutputStream;
-                    output.Write(buffer, 0, buffer.Length);
-                    output.Close();
-                };
-            }
+            publicPath = Path.GetFullPath("Public");
             listener.Prefixes.Add(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "http://localhost:8080/" : "http://*:5678/");
             listener.Start();
             listener.BeginGetContext(OnConnection, null);
+        }
+
+        static bool StaticFile(string path, HttpListenerContext context) {
+            string absolutePath = Path.GetFullPath(publicPath + path);
+            if (!absolutePath.StartsWith(publicPath) || !File.Exists(absolutePath)) return false;
+            byte[] buffer = File.ReadAllBytes(absolutePath);
+            context.Response.ContentLength64 = buffer.Length;
+            context.Response.ContentType = MimeTypeMap.GetMimeType(Path.GetExtension(absolutePath));
+            Stream output = context.Response.OutputStream;
+            output.Write(buffer, 0, buffer.Length);
+            output.Close();
+            return true;
         }
 
         static void OnConnection(IAsyncResult result) {
@@ -46,6 +49,7 @@ namespace MainServer {
                     case "GET":
                         if (gets.TryGetValue(context.Request.Url.AbsolutePath, out var value))
                             value.Invoke(context);
+                        else if (StaticFile(context.Request.Url.AbsolutePath, context)) { }
                         else if (!InvokeDynamicPath(dynamicGets, context))
                             goto default;
                         break;
@@ -133,7 +137,7 @@ namespace MainServer {
 
         public static string GenerateHTML(string content, string title = null) {
             StringBuilder sb = new StringBuilder();
-            return sb.AppendFormat(File.ReadAllText("Views/index.html"), title == null ? "NTI Life Tech" : $"{title} - NTI Life Tech", content)
+            return sb.AppendFormat(File.ReadAllText("Views/layout.html"), title == null ? "NTI Life Tech" : $"{title} - NTI Life Tech", content)
                 .Replace("\n", string.Empty).Replace("\t", string.Empty).ToString();
         }
     }

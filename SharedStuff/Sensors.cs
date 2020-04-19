@@ -2,97 +2,103 @@
 using CCS811_BME280_Library;
 using Iot.Device.Bmxx80;
 using Iot.Device.Bmxx80.PowerMode;
-using Iot.Units;
 using System.Device.I2c;
-using System.IO;
 using static SharedStuff.SensorList;
 
 
 namespace SharedStuff {
 
     public class FlowSensor : I2cSensor {
-        public FlowSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
+        public FlowSensor(byte sensorId, string sensorName, int deviceAddress, byte cmd, int busId = 1) : base(sensorId, sensorName, deviceAddress, cmd, busId) {
+            FlowRate = new SensorValue(this, SensorValueType.FlowRate);
+        }
 
-        public float FlowRate { get; private set; }
+        public SensorValue FlowRate { get; }
 
         protected override void InternalUpdateValues() {
-            FlowRate = ReadInt16();
-            ValidateValue(FlowRate, 0, 100);
+            FlowRate.value = ReadInt16();
+            FlowRate.online = ValidateValue(FlowRate, 0, 100);
         }
 
-        public override SensorValue[] GetSensorValues() {
-            return new[] {new SensorValue(this, SensorValueType.FlowRate, FlowRate)};
-        }
+        public override SensorValue[] GetSensorValues() => new [] {FlowRate};
     }
 
     public class MoistureSensor : I2cSensor {
-        public MoistureSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
+        public MoistureSensor(byte sensorId, string sensorName, int deviceAddress, byte cmd, int busId = 1) : base(sensorId, sensorName, deviceAddress, cmd, busId) {
+            Moisture = new SensorValue(this, SensorValueType.Moisture);
+        }
 
-        public float Moisture { get; private set; }
+        public SensorValue Moisture { get; }
 
         protected override void InternalUpdateValues() {
-            Moisture = ReadInt16();//100 - .Map(200, 700, 0, 100);
-            ValidateValue(Moisture, 0, 1000);
+            Moisture.value = ReadInt16();//.Map(200, 700, 0, 100);
+            Moisture.online = ValidateValue(Moisture, 0, 1000);
         }
-        public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(this, SensorValueType.Moisture, Moisture) };
-        }
+
+        public override SensorValue[] GetSensorValues() => new[] {Moisture};
     }
 
     public class LightSensor : I2cSensor {
-        public LightSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
+        public LightSensor(byte sensorId, string sensorName, int deviceAddress, byte cmd, int busId = 1) : base(sensorId, sensorName, deviceAddress, cmd, busId) {
+            Light = new SensorValue(this, SensorValueType.Light);
+        }
 
-        public float Light { get; private set; }
+        public SensorValue Light { get; }
 
         protected override void InternalUpdateValues() {
-            Light = ReadInt16();
-            ValidateValue(Light, 0, 1000);
+            Light.value = ReadInt16();
+            Light.online = ValidateValue(Light, 0, 1000);
         }
 
-        public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(this, SensorValueType.Light, Light) };
-        }
+        public override SensorValue[] GetSensorValues() => new[] {Light};
     }
 
     public class pHSensor : I2cSensor {
-        public pHSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
+        public pHSensor(byte sensorId, string sensorName, int deviceAddress, byte cmd, int busId = 1) : base(sensorId, sensorName, deviceAddress, cmd, busId) {
+            pH = new SensorValue(this, SensorValueType.pH);
+        }
 
-        public float pH { get; private set; }
+        public SensorValue pH { get; }
 
         protected override void InternalUpdateValues() {
-            pH = ReadFloat();
-            ValidateValue(pH, 1, 14);
+            pH.value = ReadFloat();
+            pH.online = ValidateValue(pH, 1, 14);
         }
 
-        public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(this, SensorValueType.pH, pH) };
-        }
+        public override SensorValue[] GetSensorValues() => new[] {pH};
     }
 
     public class TemperatureSensor : I2cSensor {
-        public TemperatureSensor(int deviceAddress, byte cmd, int busId = 1) : base(deviceAddress, cmd, busId) { }
+        public TemperatureSensor(byte sensorId, string sensorName, int deviceAddress, byte cmd, int busId = 1) : base(sensorId, sensorName, deviceAddress, cmd, busId) {
+            Temperature = new SensorValue(this, SensorValueType.Temperature);
+        }
 
-        public float Temperature { get; private set; }
+        public SensorValue Temperature { get; }
 
         protected override void InternalUpdateValues() {
-            Temperature = ReadFloat();
-            ValidateValue(Temperature, 0, 100);
+            Temperature.value = ReadFloat();
+            Temperature.online = ValidateValue(Temperature, 0, 100);
         }
 
-        public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(this, SensorValueType.Temperature, Temperature) };
-        }
+        public override SensorValue[] GetSensorValues() => new[] {Temperature};
     }
 
     public class EnvironmentalSensor : I2cSensor {
-        public EnvironmentalSensor(int bme280DeviceAddress, int ccs811deviceAddress, int busId = 1) : base(bme280DeviceAddress, 0, busId) {
+        public EnvironmentalSensor(byte sensorId, string sensorName, int bme280DeviceAddress, int ccs811deviceAddress, int busId = 1) : base(sensorId, sensorName, bme280DeviceAddress, 0, busId) {
+            Humidity = new SensorValue(this, SensorValueType.Humidity);
+            Pressure = new SensorValue(this, SensorValueType.Pressure);
+            Temperature = new SensorValue(this, SensorValueType.Temperature);
+            CO2 = new SensorValue(this, SensorValueType.CO2);
+            TVOC = new SensorValue(this, SensorValueType.TVOC);
+            if (Device == null) return;
             try {
-                if (Device != null) {
-                    I2cBme280 = new Bme280(Device);
-
-                    Ccs811Bme280 = new CCS811BME280Sensor(I2cDevice.Create(new I2cConnectionSettings(busId, ccs811deviceAddress)));
-                    Ccs811Bme280.Initialize();
-                }
+                I2cBme280 = new Bme280(Device);
+            } catch (Exception e) {
+                Console.Write(e);
+            }
+            try {
+                Ccs811Bme280 = new CCS811BME280Sensor(I2cDevice.Create(new I2cConnectionSettings(busId, ccs811deviceAddress)));
+                Ccs811Bme280.Initialize();
             } catch (Exception e) {
                 Console.Write(e);
             }
@@ -101,81 +107,86 @@ namespace SharedStuff {
         Bme280? I2cBme280;
         CCS811BME280Sensor? Ccs811Bme280;
 
-        public double Humidity { get; private set; }
-        public double Pressure { get; private set; }
-        public Temperature Temperature { get; private set; }
-        public int CO2 { get; private set; }
-        public int TVOC { get; private set; }
+        public SensorValue Humidity { get; }
+        public SensorValue Pressure { get; }
+        public SensorValue Temperature { get; }
+        public SensorValue CO2 { get; }
+        public SensorValue TVOC { get; }
 
         protected override void InternalUpdateValues() {
-            I2cBme280.SetHumiditySampling(Sampling.Standard);
-            I2cBme280.SetPressureSampling(Sampling.Standard);
-            I2cBme280.SetTemperatureSampling(Sampling.Standard);
+            I2cBme280.HumiditySampling = Sampling.Standard;
+            I2cBme280.PressureSampling = Sampling.Standard;
+            I2cBme280.TemperatureSampling = Sampling.Standard;
 
             I2cBme280.SetPowerMode(Bmx280PowerMode.Forced);
 
-            Humidity = I2cBme280.ReadHumidityAsync().Result;
-            Pressure = I2cBme280.ReadPressureAsync().Result / 1000;
-            Temperature = I2cBme280.ReadTemperatureAsync().Result;
+            if (I2cBme280.TryReadHumidity(out var humidity)) {
+                Humidity.value = (float)humidity; Humidity.online = true;
+            } else { Humidity.online = false; }
+
+            if (I2cBme280.TryReadPressure(out var pressure)) {
+                Pressure.value = (float)pressure.Kilopascal; Pressure.online = true;
+            } else { Pressure.online = false; }
+
+            if (I2cBme280.TryReadTemperature(out var temperature)) {
+                Temperature.value = (float)temperature.Celsius; Temperature.online = true;
+            } else { Temperature.online = false; }
 
             var ccsData = Ccs811Bme280.ReadCO2TVOC();
-            CO2 = ccsData[0];
-            TVOC = ccsData[1];
-            ValidateValue(CO2, 400, 8192);
-            ValidateValue(TVOC, 0, 1187);
+            CO2.value = ccsData[0];
+            TVOC.value = ccsData[1];
+
+            CO2.online = ValidateValue(CO2, 400, 8192);
+            TVOC.online = ValidateValue(TVOC, 0, 1187);
         }
 
-        public override SensorValue[] GetSensorValues() {
-            return new[]
-            {
-                new SensorValue(this, SensorValueType.Humidity, (float)Humidity),
-                new SensorValue(this, SensorValueType.Pressure, (float)Pressure),
-                new SensorValue(this, SensorValueType.Temperature, (float)Temperature.Celsius),
-                new SensorValue(this, SensorValueType.CO2, CO2),
-                new SensorValue(this, SensorValueType.TVOC, TVOC)
-            };
-        }
+        public override SensorValue[] GetSensorValues() => new[] {Humidity, Pressure, Temperature, CO2, TVOC};
     }
 
     public class DebugSensor : Sensor {
-        public float Value { get; private set; }
+        public DebugSensor(byte sensorId, string sensorName) : base(sensorId, sensorName) {
+            Value = new SensorValue(this, SensorValueType.pH);
+        }
+
+        public SensorValue Value { get; }
 
         protected override void InternalUpdateValues() {
             Random rnd = new Random();
-            Value = (float)rnd.NextDouble();
-            if (rnd.Next(10) == 5) throw new Exception();
+            Value.value = (float)rnd.NextDouble();
+            Value.online = rnd.Next(10) != 5;
         }
 
-        public override SensorValue[] GetSensorValues() {
-            return new[] { new SensorValue(this, SensorValueType.pH, Value) };
-        }
+        public override SensorValue[] GetSensorValues() => new[] {Value};
     }
 
     public class EnvironmentalDebugSensor : Sensor {
-        public double Humidity { get; private set; }
-        public double Pressure { get; private set; }
-        public Temperature Temperature { get; private set; }
-        public int CO2 { get; private set; }
-        public int TVOC { get; private set; }
+        public EnvironmentalDebugSensor(byte sensorId, string sensorName) : base(sensorId, sensorName) {
+            Humidity = new SensorValue(this, SensorValueType.Humidity);
+            Pressure = new SensorValue(this, SensorValueType.Pressure);
+            Temperature = new SensorValue(this, SensorValueType.Temperature);
+            CO2 = new SensorValue(this, SensorValueType.CO2);
+            TVOC = new SensorValue(this, SensorValueType.TVOC);
+        }
+
+        public SensorValue Humidity { get; }
+        public SensorValue Pressure { get; }
+        public SensorValue Temperature { get; }
+        public SensorValue CO2 { get; }
+        public SensorValue TVOC { get; }
 
         protected override void InternalUpdateValues() {
             Random rnd = new Random();
-            Humidity = rnd.NextDouble();
-            Pressure = rnd.NextDouble();
-            Temperature = Temperature.FromCelsius(rnd.NextDouble());
-            CO2 = rnd.Next(100);
-            TVOC = rnd.Next(100);
+            Humidity.value = (float)rnd.NextDouble();
+            Pressure.value = (float)rnd.NextDouble();
+            Temperature.value = (float)rnd.NextDouble();
+            CO2.value = rnd.Next(100);
+            TVOC.value = rnd.Next(100);
+
+            foreach (SensorValue sensorValue in GetSensorValues()) {
+                sensorValue.online = rnd.Next(10) != 5;
+            }
         }
 
-        public override SensorValue[] GetSensorValues() {
-            return new[]
-            {
-                new SensorValue(this, SensorValueType.Humidity, (float)Humidity),
-                new SensorValue(this, SensorValueType.Pressure, (float)Pressure),
-                new SensorValue(this, SensorValueType.Temperature, (float)Temperature.Celsius),
-                new SensorValue(this, SensorValueType.CO2, CO2),
-                new SensorValue(this, SensorValueType.TVOC, TVOC)
-            };
-        }
+        public override SensorValue[] GetSensorValues() => new[] {Humidity, Pressure, Temperature, CO2, TVOC};
     }
 }

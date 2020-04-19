@@ -4,8 +4,12 @@ using System.Device.I2c;
 namespace SharedStuff
 {
     public class Sensor
-    { 
-        public bool Online { get; protected set; }
+    {
+        protected Sensor(byte sensorId, string sensorName)
+        {
+            SensorId = sensorId;
+            SensorName = sensorName;
+        }
 
         public byte SensorId { get; set; }
         public string SensorName { get; set; }
@@ -15,11 +19,13 @@ namespace SharedStuff
             try
             {
                 InternalUpdateValues();
-                Online = true;
             }
             catch (Exception e)
             {
-                Online = false;
+                foreach (SensorValue sensorValue in GetSensorValues())
+                {
+                    sensorValue.online = false;
+                }
                 Console.WriteLine($"Sensoravläsningsfel: {e.Message}");
             }
         }
@@ -31,7 +37,7 @@ namespace SharedStuff
 
     public class I2cSensor : Sensor
     {
-        protected I2cSensor(int deviceAddress, byte cmd, int busId)
+        protected I2cSensor(byte sensorId, string sensorName, int deviceAddress, byte cmd, int busId) : base(sensorId, sensorName)
         {
             this.cmd = new[] { cmd };
             try
@@ -41,7 +47,6 @@ namespace SharedStuff
             catch (Exception e)
             {
                 Console.WriteLine($"Enhetsfel: {e.Message}");
-                Online = false;
             }
         }
 
@@ -49,21 +54,21 @@ namespace SharedStuff
 
         byte[] cmd;
 
-        protected byte[] ReadBytes(int length) {
+        protected byte[] ReadBytes(int length)
+        {
             var dataArray = new byte[length];
             Device!.WriteRead(cmd, dataArray);
             return dataArray;
         }
 
-        protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2), 0);
+        protected short ReadInt16() => BitConverter.ToInt16(ReadBytes(2));
 
         protected float ReadFloat() => BitConverter.ToSingle(ReadBytes(4));
 
-        protected void ValidateValue(float value, float min, float max) {
-            if (!(value >= min && value <= max)) {
-                Console.WriteLine($"Invalid value {value}. Min:{min} Max:{max}");
-                throw new Exception();
-            }
+        protected bool ValidateValue(SensorValue sensorValue, float min, float max) => ValidateValue(sensorValue.value, min, max);
+        protected bool ValidateValue(float value, float min, float max) {
+            if (value >= min && value <= max) return true;
+            return false;
         } 
     }
 }

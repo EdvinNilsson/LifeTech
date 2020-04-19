@@ -38,13 +38,15 @@ namespace SharedStuff
             }
         }
 
-        public static TValue GetValueCreateDefault<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key) where TValue : struct {
+        public static TValue ChangeValueCreateDefault<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, Func<TValue, TValue> func) where TValue : struct {
+            TValue value;
             try {
-                return dictionary[key];
+                value = dictionary[key];
             } catch (KeyNotFoundException) {
                 dictionary.Add(key, default);
-                return dictionary[key];
+                value = dictionary[key];
             }
+            return dictionary[key] = func(value);
         }
 
         public static TimeSpan Round(this TimeSpan time, TimeSpan roundingInterval) {

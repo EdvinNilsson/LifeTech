@@ -9,14 +9,15 @@ using static MainServer.WebServer;
 
 namespace MainServer {
     static class Routes {
+
         public static void Initialize() {
-            Get("/", context => "<article><p>Startsida</p></article>");
+            Get("/", context => File.ReadAllText("Views/index.html", Encoding.UTF8));
 
             Get("/media", context => File.ReadAllText("Views/media.html", Encoding.UTF8), "Media");
 
             Get("/kamera", context => string.Format(File.ReadAllText("Views/camera.html", Encoding.UTF8),
-                DatabaseHandler.GetLatestImageInfo(1).CreationTime.ToShortTimeString(),
-                DatabaseHandler.GetLatestImageInfo(2).CreationTime.ToShortTimeString()), "Kamera");
+                GetTimeString(DatabaseHandler.GetLatestImageInfo(1).CreationTime),
+                GetTimeString(DatabaseHandler.GetLatestImageInfo(2).CreationTime)), "Kamera");
 
             Get("/kamera/get-latest-image", context => {
                 byte imageId = byte.Parse(context.Request.QueryString["image"]);
@@ -30,7 +31,7 @@ namespace MainServer {
 
             Get("/realtid", context => {
                 string[] classes = new string[5];
-                classes[(byte)DatabaseHandler.GetDataPeriod(context.Request.QueryString["senaste"])] = " active";
+                classes[(byte) DatabaseHandler.GetDataPeriod(context.Request.QueryString["senaste"])] = " active";
                 return string.Format(File.ReadAllText("Views/realtime.html", Encoding.UTF8), classes);
             }, "Realtidsdata");
 
@@ -84,6 +85,13 @@ namespace MainServer {
                 context.Response.StatusCode = 404;
                 return "<article><h2>Sidan hittades inte.</h2></article>";
             }, "Sidan hittades inte");
+        }
+
+        static string GetTimeString(DateTime dateTime) {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("sv-SE");
+            return DateTime.Now - dateTime > TimeSpan.FromHours(1)
+                ? $"{dateTime.ToLongDateString()} kl. {dateTime.ToShortTimeString()}"
+                : $"kl. {dateTime.ToShortTimeString()}";
         }
     }
 }

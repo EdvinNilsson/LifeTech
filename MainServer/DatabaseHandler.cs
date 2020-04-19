@@ -24,68 +24,60 @@ namespace MainServer {
             Directory.CreateDirectory("Images 2");
 
             SensorList.Initialize();
+
             byte[] sensorIds = SensorList.Sensors.Select(c => c.SensorId).ToArray();
             CreateSensorTables(sensorIds);
+        }
 
-            AnalyzeDb();
+        public static void FillAllCacheArrays() {
+            byte[] sensorIds = SensorList.Sensors.Select(c => c.SensorId).ToArray();
 
             foreach (DataPeriod period in Enum.GetValues(typeof(DataPeriod))) {
                 FillCacheArray(sensorIds, period);
             }
         }
 
-        static bool open;
+        static bool dbOpen;
 
         static void ConnectToDb() {
-            while (open) {
+            while (dbOpen) {
                 Thread.Sleep(1);
             }
-            open = true;
+            dbOpen = true;
             sql.Open();
-        }
-
-        static void AnalyzeDb() {
-            try {
-                ConnectToDb();
-                var command = sql.CreateCommand();
-                command.CommandText = "ANALYZE";
-                command.ExecuteNonQuery();
-            } finally {
-                CloseDb();
-            }
         }
 
         static void CloseDb() {
             sql.Close();
-            open = false;
+            dbOpen = false;
         }
 
         static Dictionary<byte, Dictionary<byte, List<float>>>[] databaseCache = new Dictionary<byte, Dictionary<byte, List<float>>>[5];
 
         static int[] firstTimestampCache = new int[5];
 
-        static void AddToCacheArray(SensorData sensorData, int count, DataPeriod period, int skipEvery) {
-            if (period != DataPeriod.AllData) { 
-                int removeCount = (sensorData.Timestamp - firstTimestampCache[(byte)period] - count * skipEvery) / skipEvery;
-                firstTimestampCache[(byte)period] += removeCount * skipEvery;
-                foreach (List<float> list in from values in databaseCache[(byte)period].Values
-                    from list in values.Values where list.Count > 0 select list) {
-                    list.RemoveRange(0, MyMath.Min(removeCount, list.Count));
+        static void AddToCacheArray(SensorData sensorData, int count, DataPeriod dataPeriod, int skipEvery) {
+            if (firstTimestampCache[(byte) dataPeriod] == 0) return;
+
+            if (dataPeriod != DataPeriod.AllData) { 
+                int removeCount = (sensorData.Timestamp - firstTimestampCache[(byte) dataPeriod] - count * skipEvery) / skipEvery;
+                firstTimestampCache[(byte) dataPeriod] += removeCount * skipEvery;
+
+                foreach (var sensor in databaseCache[(byte) dataPeriod].Values) {
+                    foreach (var sensorValue in sensor) {
+                        if (sensorValue.Value.Count > removeCount) {
+                            sensorValue.Value.RemoveRange(0, removeCount);
+                        } else {
+                            sensor.Remove(sensorValue.Key);
+                        }
+                    }
                 }
             }
 
             foreach (var sensor in sensorData.Sensors) {
-                var list = databaseCache[(byte)period].GetValueCreateNew(sensor.id).GetValueCreateNew((byte)sensor.type);
-                if (period == DataPeriod.AllData) list.Add(sensor.value);
+                var list = databaseCache[(byte) dataPeriod].GetValueCreateNew(sensor.id).GetValueCreateNew((byte) sensor.type);
+                if (dataPeriod == DataPeriod.AllData) list.Add(sensor.value);
                 else list.IndexCreateNew(count - 1, sensor.value);
-            }
-        }
-
-        static void FillDb(DataPeriod period) {
-            foreach (var sensors in databaseCache[(byte) period]) {
-                foreach (var sensor in sensors.Value) {
-                    sensor.Value.FillToIndex((int)((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds() - firstTimestampCache[(byte)period]);
-                }
             }
         }
 
@@ -152,7 +144,7 @@ namespace MainServer {
                 using (sql) {
                     var command = sql.CreateCommand();
                     foreach (int id in sensorIds) {
-                        command.CommandText = $"CREATE TABLE S{id} (Timestamp INTEGER, SensorTypeId INTEGER NOT NULL, Value REAL NOT NULL); CREATE index id_ts ON S{id}(Timestamp);";
+                        command.CommandText = $"CREATE TABLE S{id} (Timestamp INTEGER, SensorTypeId INTEGER NOT NULL, Value REAL NOT NULL)";
                         try { command.ExecuteNonQuery(); } catch (SqliteException) { }
                     }
                 }
@@ -219,8 +211,7 @@ namespace MainServer {
                             break;
                     }
 
-                    firstTimestampCache[(byte)dataPeriod] = firstTimestamp;
-                    databaseCache[(byte)dataPeriod] = new Dictionary<byte, Dictionary<byte, List<float>>>();
+                    databaseCache[(byte) dataPeriod] = new Dictionary<byte, Dictionary<byte, List<float>>>();
 
                     for (byte i = 0; i < sensorIds.Length; ++i) {
                         var command = sql.CreateCommand();
@@ -262,24 +253,26 @@ namespace MainServer {
                             }
                         }
                     }
+                    firstTimestampCache[(byte)dataPeriod] = firstTimestamp;
                 }
             } finally {
                 CloseDb();
             }
         }
 
-        public static byte[] GetSensorData(byte[] sensorIds, DataPeriod dataMode) {
-            var values = databaseCache[(byte)dataMode];
+        public static byte[] GetSensorData(byte[] sensorIds, DataPeriod dataPeriod) {
+            var values = databaseCache[(byte)dataPeriod];
 
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
-            StringBuilder strb = new StringBuilder($"{firstTimestampCache[(byte)dataMode]}|{{");
+            StringBuilder strb = new StringBuilder($"{firstTimestampCache[(byte)dataPeriod]}|{{");
             int j = 0;
-            foreach (var sensor in values) {
-                strb.Append($"\"{sensor.Key}\":{{");
+            foreach (var sensorId in sensorIds) {
+                var sensor = values[sensorId];
+                strb.Append($"\"{sensorId}\":{{");
                 int i = 0;
-                foreach (var sensorValue in sensor.Value) {
+                foreach (var sensorValue in sensor) {
                     strb.Append($"\"{sensorValue.Key}\":[{string.Join(',', sensorValue.Value)}]");
-                    if (++i != sensor.Value.Count) strb.Append(',');
+                    if (++i != sensor.Count) strb.Append(',');
                 }
                 strb.Append('}');
                 if (++j != values.Keys.Count) strb.Append(',');

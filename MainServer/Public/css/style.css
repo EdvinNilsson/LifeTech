@@ -128,7 +128,6 @@ article img.camera {
 	background-position: top !important;
 }
 
-
 @media only screen and (max-width: 50rem) {
 	header section {
 		flex-direction: column;

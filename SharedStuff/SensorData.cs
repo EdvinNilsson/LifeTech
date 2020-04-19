@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace SharedStuff
 {
@@ -22,7 +23,7 @@ namespace SharedStuff
             Timestamp = (int)((DateTimeOffset)timestamp).ToUnixTimeSeconds();
             List<SensorValue> tempList = new List<SensorValue>();
             foreach (var sensor in sensors) {
-                if (sensor.Online) tempList.AddRange(sensor.GetSensorValues());
+                tempList.AddRange(sensor.GetSensorValues().Where(s => s.online));
             }
             Sensors = tempList.ToArray();
         }
@@ -58,15 +59,13 @@ namespace SharedStuff
     }
     public class SensorValue
     {
-        public SensorValue(byte id, SensorList.SensorValueType type, float value) {
-            this.id = id;
+        public SensorValue(Sensor sensor, SensorList.SensorValueType type) {
+            id = sensor.SensorId;
             this.type = type;
-            this.value = value;
         }
 
-        public SensorValue(Sensor sensor, SensorList.SensorValueType type, float value)
-        {
-            id = sensor.SensorId;
+        public SensorValue(byte id, SensorList.SensorValueType type, float value) {
+            this.id = id;
             this.type = type;
             this.value = value;
         }
@@ -74,5 +73,8 @@ namespace SharedStuff
         public byte id;
         public SensorList.SensorValueType type;
         public float value;
+        public bool online = false;
+
+        public static implicit operator float(SensorValue sensorValue) => sensorValue.value;
     }
 }

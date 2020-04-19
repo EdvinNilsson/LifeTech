@@ -41,12 +41,16 @@ namespace CCS811_BME280_Library
                 var command = new byte[] { APP_START };
                 I2C.Write(command);
 
+                // 1 ms
+
                 //if 255 : everything is OK - BUT ERROR flag to 1 => check error. should be 254
                 status = ReadDataByte(STATUS);
                 Console.WriteLine(status);
 
                 //output the error code
                 HandleError();
+
+                // 100 μs
 
                 //set the measurement to 60 seconds
                 WriteDataByte(MEAS_MODE, MEAS_DRIVE_1SEC);
@@ -56,6 +60,7 @@ namespace CCS811_BME280_Library
             {
                 HandleError();
             }
+            System.Threading.Thread.Sleep(1);
         }
 
         private void HandleError()
@@ -71,11 +76,10 @@ namespace CCS811_BME280_Library
 
             //Debug.WriteLine("status: "+ status);
 
-            var data = ReadDataBlock(0x02, 8);
+            var data = ReadDataBlock(0x02, 4);
             var co2 = (data[0] << 8) | data[1];
             var tvoc = (data[2] << 8) | data[3];
-            Console.WriteLine("CO2:" + co2);
-            Console.WriteLine("TVOC:" + tvoc);
+
             return new int[] { co2, tvoc };
         }
 
